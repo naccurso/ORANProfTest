@@ -183,7 +183,7 @@ if params.kubeDoMetalLB and params.publicIPCount < 1:
 pc.verifyParameters()
 
 tourDescription = \
-  "This profile creates a kubernetes cluster with kubespray.  When you click the Instantiate button, you'll be presented with a list of parameters that you can change to control what your kubernetes cluster will look like; read the parameter documentation on that page (or in the Instructions)."
+  "This profile creates a kubernetes cluster with kubespray, and installs the O-RAN Near-RT RIC on it.  When you click the Instantiate button, you'll be presented with a list of parameters that you can change to control what your kubernetes cluster will look like; read the parameter documentation on that page (or in the Instructions)."
 
 tourInstructions = \
   """
