@@ -35,11 +35,11 @@ pc = portal.Context()
 #
 pc.defineParameter(
     "nodeCount","Number of Nodes",
-    portal.ParameterType.INTEGER,3,
+    portal.ParameterType.INTEGER,1,
     longDescription="Number of nodes in your kubernetes cluster.  Should be either 1, or >= 3.")
 pc.defineParameter(
     "nodeType","Hardware Type",
-    portal.ParameterType.NODETYPE,"",
+    portal.ParameterType.NODETYPE,"d740",
     longDescription="A specific hardware type to use for each node.  Cloudlab clusters all have machines of specific types.  When you set this field to a value that is a specific hardware type, you will only be able to instantiate this profile on clusters with machines of that type.  If unset, when you instantiate the profile, the resulting experiment may have machines of any available type allocated.")
 pc.defineParameter(
     "linkSpeed","Experiment Link Speed",
@@ -76,12 +76,12 @@ pc.defineParameter(
     advanced=True)
 pc.defineParameter(
     "kubeVersion","Kubernetes Version",
-    portal.ParameterType.STRING,"",
+    portal.ParameterType.STRING,"v1.16.14",
     longDescription="A specific release of Kubernetes to install (e.g. v1.16.3); if left empty, Kubespray will choose its current stable version and install that.  You can check for Kubespray-known releases at https://github.com/kubernetes-sigs/kubespray/blob/release-2.13/roles/download/defaults/main.yml (or if you're using a different Kubespray release, choose the corresponding feature release branch in that URL).  You can use unsupported or unknown versions, however, as long as the binaries actually exist.",
     advanced=True)
 pc.defineParameter(
     "helmVersion","Helm Version",
-    portal.ParameterType.STRING,"",
+    portal.ParameterType.STRING,"v2.12.3",
     longDescription="A specific release of Helm to install (e.g. v2.12.3); if left empty, Kubespray will choose its current stable version and install that.  Note that the version you pick must exist as a tag in this Docker image repository: https://hub.docker.com/r/lachlanevenson/k8s-helm/tags .",
     advanced=True)
 pc.defineParameter(
@@ -114,12 +114,12 @@ pc.defineParameter(
     advanced=True)
 pc.defineParameter(
     "kubePodsSubnet","Kubernetes Pods Subnet",
-    portal.ParameterType.STRING,"192.168.0.0/17",
+    portal.ParameterType.STRING,"10.244.0.0/16",
     longDescription="The subnet containing pod addresses.",
     advanced=True)
 pc.defineParameter(
     "kubeServiceAddresses","Kubernetes Service Addresses",
-    portal.ParameterType.STRING,"192.168.128.0/17",
+    portal.ParameterType.STRING,"10.96.0.0/12",
     longDescription="The subnet containing service addresses.",
     advanced=True)
 pc.defineParameter(
@@ -134,17 +134,17 @@ pc.defineParameter(
     advanced=True)
 pc.defineParameter(
     "kubeFeatureGates","Kubernetes Feature Gate List",
-    portal.ParameterType.STRING,"",
+    portal.ParameterType.STRING,"[SCTPSupport=true]",
     longDescription="A []-enclosed, comma-separated list of features.  For instance, `[SCTPSupport=true]`.",
     advanced=True)
 pc.defineParameter(
     "kubeletCustomFlags","Kubelet Custom Flags List",
-    portal.ParameterType.STRING,"",
+    portal.ParameterType.STRING,"[--allowed-unsafe-sysctls=net.*]",
     longDescription="A []-enclosed, comma-separated list of flags.  For instance, `[--allowed-unsafe-sysctls=net.*]`.",
     advanced=True)
 pc.defineParameter(
     "kubeletMaxPods","Kubelet Max Pods",
-    portal.ParameterType.INTEGER,0,
+    portal.ParameterType.INTEGER,120,
     longDescription="An integer max pods limit; 0 allows Kubernetes to use its default value (currently is 110; see https://kubespray.io/#/docs/vars and look for `kubelet_max_pods`).  Do not change this unless you know what you are doing.",
     advanced=True)
 pc.defineParameter(
