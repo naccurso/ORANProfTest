@@ -64,7 +64,7 @@ cat <<EOF >$WWWPUB/scp-kpimon-config-file.json
         {
             "name": "scp-kpimon-xapp",
             "image": {
-                "registry": "${MIP}:5000",
+                "registry": "${HEAD}.cluster.local:5000",
                 "name": "scp-kpimon",
                 "tag": "latest"
             }
