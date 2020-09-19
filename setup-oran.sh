@@ -19,8 +19,10 @@ git submodule update --init --recursive --remote
 
 cd bin
 ./deploy-ric-platform -f ../RECIPE_EXAMPLE/PLATFORM/example_recipe.yaml
-kubectl get pods -n ricplt
-kubectl wait pod -n ricplt --for=condition=Ready --all
+for ns in ricplt ricinfra ricxapp ; do
+    kubectl get pods -n $ns
+    kubectl wait pod -n $ns --for=condition=Ready --all
+done
 
 logtend "oran"
 touch $OURDIR/oran-done
