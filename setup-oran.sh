@@ -17,6 +17,8 @@ git clone http://gerrit.o-ran-sc.org/r/it/dep -b bronze
 cd dep
 git submodule update --init --recursive --remote
 
+helm init --client-only
+
 cd bin
 ./deploy-ric-platform -f ../RECIPE_EXAMPLE/PLATFORM/example_recipe.yaml
 for ns in ricplt ricinfra ricxapp ; do
@@ -41,7 +43,7 @@ cd ric-scp-kpimon
 # Build this image and place it in our local repo, so that the onboard
 # file can use this repo, and the kubernetes ecosystem can pick it up.
 $SUDO docker build . --tag $HEAD:5000/scp-kpimon:latest
-$sudo docker push $HEAD:5000/scp-kpimon:latest
+$SUDO docker push $HEAD:5000/scp-kpimon:latest
 
 MIP=`getnodeip $HEAD $MGMTLAN`
 
