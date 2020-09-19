@@ -42,6 +42,14 @@ git clone https://gitlab.flux.utah.edu/powderrenewpublic/ric-scp-kpimon.git
 cd ric-scp-kpimon
 # Build this image and place it in our local repo, so that the onboard
 # file can use this repo, and the kubernetes ecosystem can pick it up.
+#
+# NB: The current build relies upon a non-existent image, so just use
+# the newer image.
+$SUDO docker pull \
+    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:9-u18.04
+$SUDO docker tag \
+    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:9-u18.04 \
+    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:8-u18.04
 $SUDO docker build . --tag $HEAD:5000/scp-kpimon:latest
 $SUDO docker push $HEAD:5000/scp-kpimon:latest
 
