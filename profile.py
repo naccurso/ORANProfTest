@@ -235,7 +235,7 @@ To change the Ansible and playbook configuration, you can start reading Kubespra
 
 ### O-RAN
 
-We deploy O-RAN primarily using [its install scripts]{http://gerrit.o-ran-sc.org/r/it/dep}, making minor modifications where necessary.  The profile gives you many options to change versions of specific components that are interesting to us, but not all combinations work -- O-RAN is under constant development.
+We deploy O-RAN primarily using [its install scripts](http://gerrit.o-ran-sc.org/r/it/dep), making minor modifications where necessary.  The profile gives you many options to change versions of specific components that are interesting to us, but not all combinations work -- O-RAN is under constant development.
 
 The install scripts create three Kubernetes namespaces: `ricplt`, `ricinfra`, and `ricxapp`.  The platform components are deployed in the former namespace, and xApps are deployed in the latter.
 
