@@ -279,8 +279,8 @@ kubectl logs -f -n ricplt -l app=ricplt-rtmgr
 
 6. In a new ssh connection to node-0, run an srsLTE eNodeB:
 ```
-    export E2TERM_SCTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-e2term-sctp-alpha -o jsonpath='{.items[0].spec.clusterIP}'`
-    /local/setup/srslte-ric/build/srsenb/src/srsenb --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq --rf.device_args=fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001 --ric.agent.remote_ipv4_addr=$E2TERM_SCTP --log.all_level=info --ric.agent.log_level=debug --log.filename=stdout
+export E2TERM_SCTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-e2term-sctp-alpha -o jsonpath='{.items[0].spec.clusterIP}'`
+/local/setup/srslte-ric/build/srsenb/src/srsenb --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq --rf.device_args=fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001 --ric.agent.remote_ipv4_addr=$E2TERM_SCTP --log.all_level=info --ric.agent.log_level=debug --log.filename=stdout
 ```
 The first line grabs the current E2 termination service's SCTP IP endpoint address (its kubernetes pod IP -- note that there is a different IP address for the E2 term service's HTTP endpoint); then, the second line runs an srsLTE eNodeB in simulated mode, which will connect to the E2 termination service.  If all goes well, within a few seconds, you will see XML message dumps of the E2SetupRequest (sent by the eNodeB) and the E2SetupResponse (sent by the E2 manager, and relayed to the eNodeB by the E2 termination service).
 Once you start the `scp-kpimon` xApp in the next step, you will see more message dumps as subscriptions are made and metrics are sent back to the xApp, so leave the eNodeB running.
@@ -294,7 +294,7 @@ Once you start the `scp-kpimon` xApp in the next step, you will see more message
         --header 'Content-Type: application/json' \
         --data-binary "@/local/profile-public/scp-kpimon-onboard.url"
     ```
-    (Note that the profile created `/local/profile-public/scp-kpimon-onboard.url`, a JSON file that points the onboarder to the xApp config file, and started an nginx endpoint to serve content (the xApp config file) on node-0:7998 .  The referenced config file is in `/local/profile-public/scp-kpimon-config-file.json`)
+    (Note that the profile created `/local/profile-public/scp-kpimon-onboard.url`, a JSON file that points the onboarder to the xApp config file, and started an nginx endpoint to serve content (the xApp config file) on node-0:7998 .  The referenced config file is in `/local/profile-public/scp-kpimon-config-file.json`.  Note that this config file has an environment variable, `ranList=enB_macro_661_8112_0019b0`, that tells kpimon to subscribe to the gNodeB with the args you created above.  If you change the `srsenb` command above with a different mcc/mnc/id, you will need to change the value of this variable and delete and re-create the xApp.  Or if you can figure a way to override an environment variable during xApp deploy, do that.)
     - Verify that the app was successfully created:
     ```
     curl -L -X GET \
@@ -314,7 +314,19 @@ Once you start the `scp-kpimon` xApp in the next step, you will see more message
     ```
     (This shows the output of the RIC `scp-kpimon` application, which will consist of attempts to subscribe to a target RAN node's key performance metrics, and display incoming metrics.)
 
-8.  To run the demo again if you like, stop the eNodeB via Ctrl-C, and re-run it.  Then stop the log output of the `scp-kpimon` xApp via Ctrl-C, run `kubectl -n ricxapp rollout restart deployment ricxapp-scp-kpimon` to redeploy the xApp, and re-run the log output.  If you re-run the command to access the log output too quickly, you will get a message that the container is still waiting to start.  Just run it until you see log output.
+8. To run the demo again if you like, stop the eNodeB via Ctrl-C, and re-run it.  Then stop the log output of the `scp-kpimon` xApp via Ctrl-C, run `kubectl -n ricxapp rollout restart deployment ricxapp-scp-kpimon` to redeploy the xApp, and re-run the log output.  If you re-run the command to access the log output too quickly, you will get a message that the container is still waiting to start.  Just run it until you see log output.
+
+9. To undeploy the `scp-kpimon` xApp, you can run these commands:
+    ```
+    export APPMGR_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-appmgr-http -o jsonpath='{.items[0].spec.clusterIP}'`
+    curl -L -X DELETE http://$APPMGR_HTTP:8080/ric/v1/xapps/scp-kpimon
+    ```
+
+10. To remove the xApp descriptor:
+    ```
+    export ONBOARDER_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-xapp-onboarder-http -o jsonpath='{.items[0].spec.clusterIP}'`
+    curl -L -X DELETE "http://$ONBOARDER_HTTP:8080/api/charts/scp-kpimon/1.0.1"
+    ```
 """
 
 #
