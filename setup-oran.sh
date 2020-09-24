@@ -13,14 +13,44 @@ logtstart "oran"
 
 mkdir -p $OURDIR/oran
 cd $OURDIR/oran
+
+# Login to o-ran docker registry server (both staging and release) so
+# that Dockerfile base images can be pulled.
+$SUDO docker login -u docker -p docker https://nexus3.o-ran-sc.org:10004
+$SUDO docker login -u docker -p docker https://nexus3.o-ran-sc.org:10002
+$SUDO chown -R $SWAPPER ~/.docker
+
+#
+# Custom-build any O-RAN components we might need.
+#
+git clone https://gerrit.o-ran-sc.org/r/ric-plt/submgr
+cd submgr
+git checkout f0d95262aba5c1d3770bd173d8ce054334b8a162
+$SUDO docker build . -t ${HEAD}.cluster.local:5000/submgr:0.5.0
+$SUDO docker push ${HEAD}.cluster.local:5000/submgr:0.5.0
+
+#
+# Deploy the platform.
+#
 git clone http://gerrit.o-ran-sc.org/r/it/dep -b bronze
 cd dep
 git submodule update --init --recursive --remote
 
 helm init --client-only
 
+cp RECIPE_EXAMPLE/PLATFORM/example_recipe.yaml $OURDIR/oran
+cat <<EOF >$OURDIR/oran/example_recipe.yaml-override
+submgr:
+  image:
+    registry: "node-0.cluster.local:5000"
+    name: submgr
+    tag: 0.5.0
+EOF
+yq m --inplace --overwrite $OURDIR/oran/example_recipe.yaml \
+    $OURDIR/oran/example_recipe.yaml-override
+
 cd bin
-./deploy-ric-platform -f ../RECIPE_EXAMPLE/PLATFORM/example_recipe.yaml
+./deploy-ric-platform -f $OURDIR/oran/example_recipe.yaml
 for ns in ricplt ricinfra ricxapp ; do
     kubectl get pods -n $ns
     kubectl wait pod -n $ns --for=condition=Ready --all
@@ -31,6 +61,7 @@ E2MGR_HTTP=`kubectl get svc -n ricplt | sed -nre 's/^.* *e2mgr-http *ClusterIP *
 APPMGR_HTTP=`kubectl get svc -n ricplt | sed -nre 's/^.* *appmgr-http *ClusterIP *([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*) .*$/\1/p'`
 E2TERM_SCTP=`kubectl get svc -n ricplt | sed -nre 's/^.* *e2term-sctp.* *NodePort *([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*) .*$/\1/p'`
 ONBOARDER_HTTP=`kubectl get svc -n ricplt | sed -nre 's/^.* *xapp-onboarder-http *ClusterIP *([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*) .*$/\1/p'`
+RTMGR_HTTP=`kubectl get svc -n ricplt | sed -nre 's/^.* *rtmgr-http *ClusterIP *([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*) .*$/\1/p'`
 
 curl --location --request GET "http://$KONG_PROXY:32080/onboard/api/v1/charts"
 
