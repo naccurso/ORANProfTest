@@ -134,18 +134,20 @@ cat <<EOF >$WWWPUB/scp-kpimon-onboard.url
 {"config-file.json_url":"http://$MIP:7998/scp-kpimon-config-file.json"}
 EOF
 
-curl -L -X POST \
-    "http://$KONG_PROXY:32080/onboard/api/v1/onboard/download" \
-    --header 'Content-Type: application/json' \
-    --data-binary "@${WWWPUB}/scp-kpimon-onboard.url"
+if [ -n "$DOKPIMONDEPLOY" -a $DOKPIMONDEPLOY -eq 1 ]; then
+    curl -L -X POST \
+        "http://$KONG_PROXY:32080/onboard/api/v1/onboard/download" \
+        --header 'Content-Type: application/json' \
+	--data-binary "@${WWWPUB}/scp-kpimon-onboard.url"
 
-curl -L -X GET \
-    "http://$KONG_PROXY:32080/onboard/api/v1/charts"
+    curl -L -X GET \
+        "http://$KONG_PROXY:32080/onboard/api/v1/charts"
 
-curl -L -X POST \
-    "http://$KONG_PROXY:32080/appmgr/ric/v1/xapps" \
-    --header 'Content-Type: application/json' \
-    --data-raw '{"xappName": "scp-kpimon"}'
+    curl -L -X POST \
+	"http://$KONG_PROXY:32080/appmgr/ric/v1/xapps" \
+	--header 'Content-Type: application/json' \
+	--data-raw '{"xappName": "scp-kpimon"}'
+fi
 
 logtend "oran"
 touch $OURDIR/oran-done
