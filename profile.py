@@ -188,14 +188,19 @@ if params.kubeDoMetalLB and params.publicIPCount < 1:
 pc.verifyParameters()
 
 tourDescription = \
-  "This profile creates a kubernetes cluster with kubespray, and installs the O-RAN Near-RT RIC on it.  When you click the Instantiate button, you'll be presented with a list of parameters that you can change to control what your kubernetes cluster will look like; read the parameter documentation on that page (or in the Instructions)."
+  "This profile creates a kubernetes cluster with kubespray, and installs the O-RAN Near-RT RIC on it.  When you click the Instantiate button, you'll be presented with a list of parameters that you can change to configure your O-RAN and kubernetes deployments.  Read the parameter documentation embedded in the parameter selector, or in the Instructions."
 
 tourInstructions = \
   """
-### Basic Instructions
-Once your experiment nodes have booted, and this profile's configuration scripts have finished configuring kubernetes inside your experiment, you'll be able to visit [the Kubernetes Dashboard WWW interface](https://{host-node-0}:8080/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login) (approx. 10-15 minutes).
+### Instructions
 
-The dashboard will not be available immediately.  There are multiple ways to determine if the scripts have finished.
+This profile can be used to demo O-RAN and our OAI/srsLTE RIC agents, as well as to develop and test the O-RAN platform and xApps.  You'll want to briefly read the Kubernetes section below to undestand how to access the Kubernetes cluster in your experiment.  Then you can read the O-RAN section further down for a guide to running demos on O-RAN.
+
+### Kubernetes
+
+Once your experiment nodes have booted, and the profile's scripts have finished configuring Kubernetes inside your experiment, you'll be able to visit [the Kubernetes Dashboard WWW interface](https://{host-node-0}:8080/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login) (approx. 10-15 minutes, depending on the performance of the node type you have selected).
+
+There are multiple ways to determine if the setup scripts have finished.
   - First, you can watch the experiment status page: the overall State will say \"booted (startup services are still running)\" to indicate that the nodes have booted up, but the setup scripts are still running.
   - Second, the Topology View will show you, for each node, the status of the startup command on each node (the startup command kicks off the setup scripts on each node).  Once the startup command has finished on each node, the overall State field will change to \"ready\".  If any of the startup scripts fail, you can mouse over the failed node in the topology viewer for the status code.
   - Third, the profile configuration scripts also send you two emails: once to notify you that kubernetes setup has started, and a second to notify you that setup has completed.  Once you receive the second email, you can login to the dashboard and begin your work.
@@ -211,6 +216,10 @@ Kubernetes credentials are in `~/.kube/config`, or in `/root/.kube/config`, as y
 
 The profile's setup scripts are automatically installed on each node in `/local/repository`, and all of the Kubernetes installation is triggered from `node-0`.  The scripts execute as your uid, and keep state and downloaded files in `/local/setup/`.  The scripts write copious logfiles in that directory; so if you think there's a problem with the configuration, you could take a quick look through these logs on the `node-0` node.  The primary logfile is `/local/setup/setup-driver.log`.
 
+Finally, if you login to your experiment nodes before we finish configuring Kubernetes, your user id will not yet have been placed in the `docker` group.  We do this after installation so that you need not type `sudo docker ...` every time you want to run the `docker` CLI tool directly.  Therefore, if you get an error message about being unable to connect to the docker daemon, log out and reconnect to your experiment node.
+
+#### Changing your Kubernetes deployment
+
 Kubespray is a collection of Ansible playbooks, so you can make changes to the deployed kubernetes cluster, or even destroy and rebuild it (although you would then lose any of the post-install configuration we do in `/local/repository/setup-kubernetes-extra.sh`).  The `/local/repository/setup-kubespray.sh` script installs Ansible inside a Python 3 `virtualenv` (in `/local/setup/kubespray-virtualenv` on `node-0`).  A `virtualenv` (or `venv`) is effectively a separate part of the filesystem containing Python libraries and scripts, and a set of environment variables and paths that restrict its user to those Python libraries and scripts.  To modify your cluster's configuration in the Kubespray/Ansible way, you can run commands like these (as your uid):
 
 1. "Enter" (or access) the `virtualenv`: `. /local/setup/kubespray-virtualenv/bin/activate`
@@ -223,6 +232,89 @@ To change the Ansible and playbook configuration, you can start reading Kubespra
   - https://github.com/kubernetes-sigs/kubespray/blob/master/docs/getting-started.md
   - https://github.com/kubernetes-sigs/kubespray
   - https://kubespray.io/
+
+### O-RAN
+
+We deploy O-RAN primarily using [its install scripts]{http://gerrit.o-ran-sc.org/r/it/dep}, making minor modifications where necessary.  The profile gives you many options to change versions of specific components that are interesting to us, but not all combinations work -- O-RAN is under constant development.
+
+The install scripts create three Kubernetes namespaces: `ricplt`, `ricinfra`, and `ricxapp`.  The platform components are deployed in the former namespace, and xApps are deployed in the latter.
+
+#### O-RAN and srsLTE demo
+
+These instructions show you a demo of the interaction between an xApp, the RIC core, and an srsLTE RAN node (with RIC support).  You'll open several ssh connections to the node in your experiment so that you can deploy xApps and monitor the flow of information through the O-RAN RIC components.  If you're more interested in the overall demo, and less so in the gory details, you can skip the (optional) steps.
+
+##### Viewing component log output:
+
+1. In a new ssh connection to node-0:
+```
+kubectl logs -f -n ricplt -l app=ricplt-e2term
+```
+(to view the output of the RIC E2 termination service, to which RAN nodes connect over SCTP).
+
+2. In a new ssh connection to node-0:
+```
+kubectl logs -f -n ricplt -l app=ricplt-submgr
+```
+(to view the output of the RIC subscription manager service, which aggregates xApp subscription requests and forwards them to target RAN nodes)
+
+3. (optional) In a new ssh connection to node-0:
+```
+kubectl logs -f -n ricplt -l app=ricplt-e2mgr
+```
+(to view the output of the RIC E2 manager service, which shows information about connecting RAN nodes)
+
+4. (optional) In a new ssh connection to node-0:
+```
+kubectl logs -f -n ricplt -l app=ricplt-appmgr
+```
+(to view the output of the RIC application manager service)
+
+5. (optional) In a new ssh connection to node-0:
+```
+kubectl logs -f -n ricplt -l app=ricplt-rtmgr
+```
+(to view the output of the RIC route manager, which manages RMR routes across the RIC components)
+
+##### Running the O-RAN/srsLTE demo:
+
+6. In a new ssh connection to node-0, run an srsLTE eNodeB:
+```
+    export E2TERM_SCTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-e2term-sctp-alpha -o jsonpath='{.items[0].spec.clusterIP}'`
+    /local/setup/srslte-ric/build/srsenb/src/srsenb --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq --rf.device_args=fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001 --ric.agent.remote_ipv4_addr=$E2TERM_SCTP --log.all_level=info --ric.agent.log_level=debug --log.filename=stdout
+```
+The first line grabs the current E2 termination service's SCTP IP endpoint address (its kubernetes pod IP -- note that there is a different IP address for the E2 term service's HTTP endpoint); then, the second line runs an srsLTE eNodeB in simulated mode, which will connect to the E2 termination service.  If all goes well, within a few seconds, you will see XML message dumps of the E2SetupRequest (sent by the eNodeB) and the E2SetupResponse (sent by the E2 manager, and relayed to the eNodeB by the E2 termination service).
+Once you start the `scp-kpimon` xApp in the next step, you will see more message dumps as subscriptions are made and metrics are sent back to the xApp, so leave the eNodeB running.
+
+7. In a new ssh connection to node-0, run the following commands to onboard and deploy the `scp-kpimon` xApp:
+    - Onboard the `scp-kpimon` xApp:
+    ```
+    export KONG_PROXY=`kubectl get svc -n ricplt -l app.kubernetes.io/name=kong -o jsonpath='{.items[0].spec.clusterIP}'`
+    curl -L -X POST \
+        "http://$KONG_PROXY:32080/onboard/api/v1/onboard/download" \
+        --header 'Content-Type: application/json' \
+        --data-binary "@/local/profile-public/scp-kpimon-onboard.url"
+    ```
+    (Note that the profile created `/local/profile-public/scp-kpimon-onboard.url`, a JSON file that points the onboarder to the xApp config file, and started an nginx endpoint to serve content (the xApp config file) on node-0:7998 .  The referenced config file is in `/local/profile-public/scp-kpimon-config-file.json`)
+    - Verify that the app was successfully created:
+    ```
+    curl -L -X GET \
+    "http://$KONG_PROXY:32080/onboard/api/v1/charts"
+    ```
+    (You should see a single JSON blob that refers to a Helm chart.)
+    - Deploy the `scp-kpimon` xApp:
+    ```
+    curl -L -X POST \
+        "http://$KONG_PROXY:32080/appmgr/ric/v1/xapps" \
+        --header 'Content-Type: application/json' \
+        --data-raw '{"xappName": "scp-kpimon"}'
+    ```
+    - View the logs of the `scp-kpimon` xApp:
+    ```
+    kubectl logs -f -n ricxapp -l app=ricxapp-scp-kpimon
+    ```
+    (This shows the output of the RIC `scp-kpimon` application, which will consist of attempts to subscribe to a target RAN node's key performance metrics, and display incoming metrics.)
+
+8.  To run the demo again if you like, stop the eNodeB via Ctrl-C, and re-run it.  Then stop the log output of the `scp-kpimon` xApp via Ctrl-C, run `kubectl -n ricxapp rollout restart deployment ricxapp-scp-kpimon` to redeploy the xApp, and re-run the log output.  If you re-run the command to access the log output too quickly, you will get a message that the container is still waiting to start.  Just run it until you see log output.
 """
 
 #
