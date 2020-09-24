@@ -56,12 +56,13 @@ for ns in ricplt ricinfra ricxapp ; do
     kubectl wait pod -n $ns --for=condition=Ready --all
 done
 
-KONG_PROXY=`kubectl get svc -n ricplt | sed -nre 's/^.* *kong-proxy *NodePort *([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*) .*$/\1/p'`
-E2MGR_HTTP=`kubectl get svc -n ricplt | sed -nre 's/^.* *e2mgr-http *ClusterIP *([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*) .*$/\1/p'`
-APPMGR_HTTP=`kubectl get svc -n ricplt | sed -nre 's/^.* *appmgr-http *ClusterIP *([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*) .*$/\1/p'`
-E2TERM_SCTP=`kubectl get svc -n ricplt | sed -nre 's/^.* *e2term-sctp.* *NodePort *([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*) .*$/\1/p'`
-ONBOARDER_HTTP=`kubectl get svc -n ricplt | sed -nre 's/^.* *xapp-onboarder-http *ClusterIP *([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*) .*$/\1/p'`
-RTMGR_HTTP=`kubectl get svc -n ricplt | sed -nre 's/^.* *rtmgr-http *ClusterIP *([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*) .*$/\1/p'`
+# kubectl get pods -n ricplt  -l app=ricplt-e2term -o jsonpath='{..status.podIP}'
+KONG_PROXY=`kubectl get svc -n ricplt -l app.kubernetes.io/name=kong -o jsonpath='{.items[0].spec.clusterIP}'`
+E2MGR_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-e2mgr-http -o jsonpath='{.items[0].spec.clusterIP}'`
+APPMGR_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-appmgr-http -o jsonpath='{.items[0].spec.clusterIP}'`
+E2TERM_SCTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-e2term-sctp-alpha -o jsonpath='{.items[0].spec.clusterIP}'`
+ONBOARDER_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-xapp-onboarder-http -o jsonpath='{.items[0].spec.clusterIP}'`
+RTMGR_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-rtmgr-http -o jsonpath='{.items[0].spec.clusterIP}'`
 
 curl --location --request GET "http://$KONG_PROXY:32080/onboard/api/v1/charts"
 
