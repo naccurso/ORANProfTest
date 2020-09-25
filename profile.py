@@ -312,17 +312,23 @@ Once you start the `scp-kpimon` xApp in the next step, you will see more message
     ```
     kubectl logs -f -n ricxapp -l app=ricxapp-scp-kpimon
     ```
-    (This shows the output of the RIC `scp-kpimon` application, which will consist of attempts to subscribe to a target RAN node's key performance metrics, and display incoming metrics.)
+    (This shows the output of the RIC `scp-kpimon` application, which will consist of attempts to subscribe to a target RAN node's key performance metrics, and display incoming indications --- metric reports.  However, to see the decoded metrics, you have to run the following command within the pod, since those logs are not dumped to console.)
 
-8. To run the demo again if you like, stop the eNodeB via Ctrl-C, and re-run it.  Then stop the log output of the `scp-kpimon` xApp via Ctrl-C, run `kubectl -n ricxapp rollout restart deployment ricxapp-scp-kpimon` to redeploy the xApp, and re-run the log output.  If you re-run the command to access the log output too quickly, you will get a message that the container is still waiting to start.  Just run it until you see log output.
+8. Stop the prior `kubectl logs ...` command from Step 8, and run
+    ```
+    kubectl exec -it -n ricxapp `kubectl get pod -n ricxapp -l app=ricxapp-scp-kpimon -o jsonpath='{.items[0].metadata.name}'` -- tail -f /opt/kpimon.log
+    ```
+    (This will show the decoded metric reports as they arrive from the eNodeB.  Note that it is complicated because you must explicitly name a pod to `kubectl exec`, and pod names have random characters in them.  Thus, if you re-dploy the xApp, the pod name will change; hence the embedded command to find the pod name.)
 
-9. To undeploy the `scp-kpimon` xApp, you can run these commands:
+9. To run the demo again if you like, stop the eNodeB via Ctrl-C, and re-run it.  Then stop the log output of the `scp-kpimon` xApp via Ctrl-C, run `kubectl -n ricxapp rollout restart deployment ricxapp-scp-kpimon` to redeploy the xApp, and re-run the log output.  If you re-run the command to access the log output too quickly, you will get a message that the container is still waiting to start.  Just run it until you see log output.
+
+10. To undeploy the `scp-kpimon` xApp, you can run these commands:
     ```
     export APPMGR_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-appmgr-http -o jsonpath='{.items[0].spec.clusterIP}'`
     curl -L -X DELETE http://$APPMGR_HTTP:8080/ric/v1/xapps/scp-kpimon
     ```
 
-10. To remove the xApp descriptor:
+11. To remove the xApp descriptor:
     ```
     export ONBOARDER_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-xapp-onboarder-http -o jsonpath='{.items[0].spec.clusterIP}'`
     curl -L -X DELETE "http://$ONBOARDER_HTTP:8080/api/charts/scp-kpimon/1.0.1"

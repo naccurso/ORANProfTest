@@ -86,11 +86,15 @@ RTMGR_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ric
 curl --location --request GET "http://$KONG_PROXY:32080/onboard/api/v1/charts"
 
 #
-# Onboard and deploy our (slightly) modified scp-kpimon app.
+# Onboard and deploy our modified scp-kpimon app.
+#
+# There are bugs in the initial version; and we don't have e2sm-kpm-01.02, so
+# we handle both those things.
 #
 cd $OURDIR/oran
 git clone https://gitlab.flux.utah.edu/powderrenewpublic/ric-scp-kpimon.git
 cd ric-scp-kpimon
+git checkout revert-to-e2sm-kpm-01.00
 # Build this image and place it in our local repo, so that the onboard
 # file can use this repo, and the kubernetes ecosystem can pick it up.
 #
