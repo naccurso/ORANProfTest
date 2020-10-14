@@ -284,7 +284,7 @@ sudo /local/setup/srslte-ric/build/srsepc/src/srsepc --spgw.sgi_if_addr=192.168.
 
 1. In a new ssh connection to `node-0`, prepare and run an srsLTE eNodeB.
 ```
-sudo sed -i -re 's/^(.*n_prb).*$/\1 = 15/' /etc/srslte/enb.conf
+sudo sed -i -re 's/^(.*n_prb).*$/\\1 = 15/' /etc/srslte/enb.conf
 export E2TERM_SCTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-e2term-sctp-alpha -o jsonpath='{.items[0].spec.clusterIP}'`
 /local/setup/srslte-ric/build/srsenb/src/srsenb \
     --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq \
