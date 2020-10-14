@@ -35,12 +35,14 @@ git checkout f13529a2ae0cae8639cfcb3504b9850a571de873
 cd RIC-E2-TERMINATION
 $SUDO docker build -f Dockerfile -t ${HEAD}.cluster.local:5000/e2term:5.4.2 .
 $SUDO docker push ${HEAD}.cluster.local:5000/e2term:5.4.2
+cd ../..
 
 git clone https://gerrit.o-ran-sc.org/r/ric-plt/submgr
 cd submgr
 git checkout f0d95262aba5c1d3770bd173d8ce054334b8a162
 $SUDO docker build . -t ${HEAD}.cluster.local:5000/submgr:0.5.0
 $SUDO docker push ${HEAD}.cluster.local:5000/submgr:0.5.0
+cd ..
 
 #
 # Deploy the platform.
