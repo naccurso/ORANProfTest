@@ -108,6 +108,8 @@ SINGLENODE_MGMT_NETBITS=16
 SINGLENODE_MGMT_CIDR=${SINGLENODE_MGMT_IP}/${SINGLENODE_MGMT_NETBITS}
 DOLOCALREGISTRY=1
 
+DOKPIMONDEPLOY=0
+
 #
 # We have an 'admin' user that gets a random password that comes in from
 # geni-lib/rspec as a hash.
