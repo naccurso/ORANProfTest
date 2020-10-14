@@ -289,7 +289,7 @@ export E2TERM_SCTP=`kubectl get svc -n ricplt --field-selector metadata.name=ser
 sudo /local/setup/srslte-ric/build/srsenb/src/srsenb \
     --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq \
     --rf.device_args=fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001 \
-    --ric.agent.remote_ipv4_addr=$E2TERM_SCTP --log.all_level=info --ric.agent.log_level=debug --log.filename=stdout
+    --ric.agent.remote_ipv4_addr=$E2TERM_SCTP --log.all_level=warn --ric.agent.log_level=debug --log.filename=stdout
 ```
 The first line changes the available PRBs because we have everything on a single node, and absolute RAN performance is not the goal of this demo.
 The second line grabs the current E2 termination service's SCTP IP endpoint address (its kubernetes pod IP -- note that there is a different IP address for the E2 term service's HTTP endpoint); then, the second line runs an srsLTE eNodeB in simulated mode, which will connect to the E2 termination service.  If all goes well, within a few seconds, you will see XML message dumps of the E2SetupRequest (sent by the eNodeB) and the E2SetupResponse (sent by the E2 manager, and relayed to the eNodeB by the E2 termination service).
@@ -326,7 +326,7 @@ Once you start the `scp-kpimon` xApp in the next step, you will see more message
 
 4. Stop the prior `kubectl logs ...` command from Step 3, and run
 ```
-kubectl exec -it -n ricxapp `kubectl get pod -n ricxapp -l app=ricxapp-scp-kpimon -o jsonpath='{.items[0].metadata.name}'` -- tail -f /opt/kpimon.log
+kubectl exec -it -n ricxapp `kubectl get pod -n ricxapp -l app=ricxapp-scp-kpimon -o jsonpath='{.items[0].metadata.name}'` -- tail -F /opt/kpimon.log
 ```
 This will show the decoded metric reports as they arrive from the eNodeB.  We have not yet started a UE, so the reports will not initially have much content, and you'll see that `NumberOfActiveUEs` is `0`.  Note that the command is complicated because you must explicitly name a pod to `kubectl exec`, and pod names have random characters in them.  Thus, if you re-dploy the xApp, the pod name will change; hence the embedded command to find the pod name.
 
