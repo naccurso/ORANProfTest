@@ -286,7 +286,7 @@ sudo /local/setup/srslte-ric/build/srsepc/src/srsepc --spgw.sgi_if_addr=192.168.
 ```
 sudo sed -i -re 's/^(.*n_prb).*$/\\1 = 15/' /etc/srslte/enb.conf
 export E2TERM_SCTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-e2term-sctp-alpha -o jsonpath='{.items[0].spec.clusterIP}'`
-/local/setup/srslte-ric/build/srsenb/src/srsenb \
+sudo /local/setup/srslte-ric/build/srsenb/src/srsenb \
     --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq \
     --rf.device_args=fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001 \
     --ric.agent.remote_ipv4_addr=$E2TERM_SCTP --log.all_level=info --ric.agent.log_level=debug --log.filename=stdout
@@ -335,11 +335,11 @@ This will show the decoded metric reports as they arrive from the eNodeB.  We ha
 sudo ip netns add ue1
 sudo /local/setup/srslte-ric/build/srsue/src/srsue \
     --rf.device_name=zmq --rf.device_args=tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,id=ue,base_srate=23.04e6 \
-    --usim.algo=xor --usim.imsi=001010123456780 --usim.k=00112233445566778899aabbccddeeff --usim.imei=353490069873310 \
+    --usim.algo=xor --usim.imsi=001010123456789 --usim.k=00112233445566778899aabbccddeeff --usim.imei=353490069873310 \
     --log.all_level=warn --log.filename=stdout --gw.netns=ue1
 ```
 Note that we place the UE's mobile network interface in separate network namespace since the SPGW network interface from the EPC process is already in the root network namespace with an `192.168.0.1` address in the same subnet as the UE's address will be in.
-Note that the IMSI and key correspond to values for `ue2` in `/etc/srslte/user_db.csv`.  If you change the contents of that file, make sure to first kill the EPC process, then modify, then restart EPC.  The EPC process updates this file when it exits.
+Note that the IMSI and key correspond to values for `ue1` in `/etc/srslte/user_db.csv`.  If you want to change the contents of that file, make sure to first kill the EPC process, then modify, then restart EPC.  The EPC process updates this file when it exits.
 
 6. In a new ssh connection to `node-0`, send some simple traffic from the simulated UE:
 ```
