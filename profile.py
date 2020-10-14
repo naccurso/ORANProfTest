@@ -192,11 +192,11 @@ tourDescription = \
 
 tourInstructions = \
   """
-### Instructions
+## Instructions
 
 This profile can be used to demo O-RAN and our OAI/srsLTE RIC agents, as well as to develop and test the O-RAN platform and xApps.  You'll want to briefly read the Kubernetes section below to undestand how to access the Kubernetes cluster in your experiment.  Then you can read the O-RAN section further down for a guide to running demos on O-RAN.
 
-### Kubernetes
+## Kubernetes
 
 Once your experiment nodes have booted, and the profile's scripts have finished configuring Kubernetes inside your experiment, you'll be able to visit [the Kubernetes Dashboard WWW interface](https://{host-node-0}:8080/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login) (approx. 10-15 minutes, depending on the performance of the node type you have selected).
 
@@ -218,7 +218,7 @@ The profile's setup scripts are automatically installed on each node in `/local/
 
 Finally, if you login to your experiment nodes before we finish configuring Kubernetes, your user id will not yet have been placed in the `docker` group.  We do this after installation so that you need not type `sudo docker ...` every time you want to run the `docker` CLI tool directly.  Therefore, if you get an error message about being unable to connect to the docker daemon, log out and reconnect to your experiment node.
 
-#### Changing your Kubernetes deployment
+### Changing your Kubernetes deployment
 
 Kubespray is a collection of Ansible playbooks, so you can make changes to the deployed kubernetes cluster, or even destroy and rebuild it (although you would then lose any of the post-install configuration we do in `/local/repository/setup-kubernetes-extra.sh`).  The `/local/repository/setup-kubespray.sh` script installs Ansible inside a Python 3 `virtualenv` (in `/local/setup/kubespray-virtualenv` on `node-0`).  A `virtualenv` (or `venv`) is effectively a separate part of the filesystem containing Python libraries and scripts, and a set of environment variables and paths that restrict its user to those Python libraries and scripts.  To modify your cluster's configuration in the Kubespray/Ansible way, you can run commands like these (as your uid):
 
@@ -233,59 +233,69 @@ To change the Ansible and playbook configuration, you can start reading Kubespra
   - https://github.com/kubernetes-sigs/kubespray
   - https://kubespray.io/
 
-### O-RAN
+## O-RAN
 
 We deploy O-RAN primarily using [its install scripts](http://gerrit.o-ran-sc.org/r/it/dep), making minor modifications where necessary.  The profile gives you many options to change versions of specific components that are interesting to us, but not all combinations work -- O-RAN is under constant development.
 
 The install scripts create three Kubernetes namespaces: `ricplt`, `ricinfra`, and `ricxapp`.  The platform components are deployed in the former namespace, and xApps are deployed in the latter.
 
-#### O-RAN and srsLTE demo
+### O-RAN and srsLTE demo
 
 These instructions show you a demo of the interaction between an xApp, the RIC core, and an srsLTE RAN node (with RIC support).  You'll open several ssh connections to the node in your experiment so that you can deploy xApps and monitor the flow of information through the O-RAN RIC components.  If you're more interested in the overall demo, and less so in the gory details, you can skip the (optional) steps.
 
-##### Viewing component log output:
+#### Viewing component log output:
 
-1. In a new ssh connection to node-0:
+1. In a new ssh connection to `node-0`:
 ```
 kubectl logs -f -n ricplt -l app=ricplt-e2term
 ```
 (to view the output of the RIC E2 termination service, to which RAN nodes connect over SCTP).
 
-2. In a new ssh connection to node-0:
+2. In a new ssh connection to `node-0`:
 ```
 kubectl logs -f -n ricplt -l app=ricplt-submgr
 ```
 (to view the output of the RIC subscription manager service, which aggregates xApp subscription requests and forwards them to target RAN nodes)
 
-3. (optional) In a new ssh connection to node-0:
+3. (optional) In a new ssh connection to `node-0`:
 ```
 kubectl logs -f -n ricplt -l app=ricplt-e2mgr
 ```
 (to view the output of the RIC E2 manager service, which shows information about connecting RAN nodes)
 
-4. (optional) In a new ssh connection to node-0:
+4. (optional) In a new ssh connection to `node-0`:
 ```
 kubectl logs -f -n ricplt -l app=ricplt-appmgr
 ```
 (to view the output of the RIC application manager service)
 
-5. (optional) In a new ssh connection to node-0:
+5. (optional) In a new ssh connection to `node-0`:
 ```
 kubectl logs -f -n ricplt -l app=ricplt-rtmgr
 ```
 (to view the output of the RIC route manager, which manages RMR routes across the RIC components)
 
-##### Running the O-RAN/srsLTE demo:
+#### Running the O-RAN/srsLTE demo:
 
-6. In a new ssh connection to node-0, run an srsLTE eNodeB:
+1. In a new ssh connection to `node-0`, run an srsLTE EPC:
 ```
+sudo /local/setup/srslte-ric/build/srsepc/src/srsepc --spgw.sgi_if_addr=192.168.0.1
+```
+
+1. In a new ssh connection to `node-0`, prepare and run an srsLTE eNodeB.
+```
+sudo sed -i -re 's/^(.*n_prb).*$/\1 = 15/' /etc/srslte/enb.conf
 export E2TERM_SCTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-e2term-sctp-alpha -o jsonpath='{.items[0].spec.clusterIP}'`
-/local/setup/srslte-ric/build/srsenb/src/srsenb --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq --rf.device_args=fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001 --ric.agent.remote_ipv4_addr=$E2TERM_SCTP --log.all_level=info --ric.agent.log_level=debug --log.filename=stdout
+/local/setup/srslte-ric/build/srsenb/src/srsenb \
+    --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq \
+    --rf.device_args=fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001 \
+    --ric.agent.remote_ipv4_addr=$E2TERM_SCTP --log.all_level=info --ric.agent.log_level=debug --log.filename=stdout
 ```
-The first line grabs the current E2 termination service's SCTP IP endpoint address (its kubernetes pod IP -- note that there is a different IP address for the E2 term service's HTTP endpoint); then, the second line runs an srsLTE eNodeB in simulated mode, which will connect to the E2 termination service.  If all goes well, within a few seconds, you will see XML message dumps of the E2SetupRequest (sent by the eNodeB) and the E2SetupResponse (sent by the E2 manager, and relayed to the eNodeB by the E2 termination service).
+The first line changes the available PRBs because we have everything on a single node, and absolute RAN performance is not the goal of this demo.
+The second line grabs the current E2 termination service's SCTP IP endpoint address (its kubernetes pod IP -- note that there is a different IP address for the E2 term service's HTTP endpoint); then, the second line runs an srsLTE eNodeB in simulated mode, which will connect to the E2 termination service.  If all goes well, within a few seconds, you will see XML message dumps of the E2SetupRequest (sent by the eNodeB) and the E2SetupResponse (sent by the E2 manager, and relayed to the eNodeB by the E2 termination service).
 Once you start the `scp-kpimon` xApp in the next step, you will see more message dumps as subscriptions are made and metrics are sent back to the xApp, so leave the eNodeB running.
 
-7. In a new ssh connection to node-0, run the following commands to onboard and deploy the `scp-kpimon` xApp:
+3. In a new ssh connection to `node-0`, run the following commands to onboard and deploy the `scp-kpimon` xApp:
     - Onboard the `scp-kpimon` xApp:
     ```
     export KONG_PROXY=`kubectl get svc -n ricplt -l app.kubernetes.io/name=kong -o jsonpath='{.items[0].spec.clusterIP}'`
@@ -294,11 +304,11 @@ Once you start the `scp-kpimon` xApp in the next step, you will see more message
         --header 'Content-Type: application/json' \
         --data-binary "@/local/profile-public/scp-kpimon-onboard.url"
     ```
-    (Note that the profile created `/local/profile-public/scp-kpimon-onboard.url`, a JSON file that points the onboarder to the xApp config file, and started an nginx endpoint to serve content (the xApp config file) on node-0:7998 .  The referenced config file is in `/local/profile-public/scp-kpimon-config-file.json`.  Note that this config file has an environment variable, `ranList=enB_macro_661_8112_0019b0`, that tells kpimon to subscribe to the gNodeB with the args you created above.  If you change the `srsenb` command above with a different mcc/mnc/id, you will need to change the value of this variable and delete and re-create the xApp.  Or if you can figure a way to override an environment variable during xApp deploy, do that.)
+    (Note that the profile created `/local/profile-public/scp-kpimon-onboard.url`, a JSON file that points the onboarder to the xApp config file, and started an nginx endpoint to serve content (the xApp config file) on `node-0:7998`.  The referenced config file is in `/local/profile-public/scp-kpimon-config-file.json`.  Note that this config file has an environment variable, `ranList=enB_macro_661_8112_0019b0`, that tells kpimon to subscribe to the gNodeB with the args you created above.  If you change the `srsenb` command above with a different mcc/mnc/id, you will need to change the value of this variable and delete and re-create the xApp.  Or if you can figure a way to override an environment variable during xApp deploy, do that.)
     - Verify that the app was successfully created:
     ```
     curl -L -X GET \
-    "http://$KONG_PROXY:32080/onboard/api/v1/charts"
+        "http://$KONG_PROXY:32080/onboard/api/v1/charts"
     ```
     (You should see a single JSON blob that refers to a Helm chart.)
     - Deploy the `scp-kpimon` xApp:
@@ -314,25 +324,109 @@ Once you start the `scp-kpimon` xApp in the next step, you will see more message
     ```
     (This shows the output of the RIC `scp-kpimon` application, which will consist of attempts to subscribe to a target RAN node's key performance metrics, and display incoming indications --- metric reports.  However, to see the decoded metrics, you have to run the following command within the pod, since those logs are not dumped to console.)
 
-8. Stop the prior `kubectl logs ...` command from Step 8, and run
-    ```
-    kubectl exec -it -n ricxapp `kubectl get pod -n ricxapp -l app=ricxapp-scp-kpimon -o jsonpath='{.items[0].metadata.name}'` -- tail -f /opt/kpimon.log
-    ```
-    (This will show the decoded metric reports as they arrive from the eNodeB.  Note that it is complicated because you must explicitly name a pod to `kubectl exec`, and pod names have random characters in them.  Thus, if you re-dploy the xApp, the pod name will change; hence the embedded command to find the pod name.)
+4. Stop the prior `kubectl logs ...` command from Step 3, and run
+```
+kubectl exec -it -n ricxapp `kubectl get pod -n ricxapp -l app=ricxapp-scp-kpimon -o jsonpath='{.items[0].metadata.name}'` -- tail -f /opt/kpimon.log
+```
+This will show the decoded metric reports as they arrive from the eNodeB.  We have not yet started a UE, so the reports will not initially have much content, and you'll see that `NumberOfActiveUEs` is `0`.  Note that the command is complicated because you must explicitly name a pod to `kubectl exec`, and pod names have random characters in them.  Thus, if you re-dploy the xApp, the pod name will change; hence the embedded command to find the pod name.
 
-9. To run the demo again if you like, stop the eNodeB via Ctrl-C, and re-run it.  Then stop the log output of the `scp-kpimon` xApp via Ctrl-C, run `kubectl -n ricxapp rollout restart deployment ricxapp-scp-kpimon` to redeploy the xApp, and re-run the log output.  If you re-run the command to access the log output too quickly, you will get a message that the container is still waiting to start.  Just run it until you see log output.
+5. In a new ssh connection to `node-0`, run a simulated UE, placing its network interface into a separate network namespace:
+```
+sudo ip netns add ue1
+sudo /local/setup/srslte-ric/build/srsue/src/srsue \
+    --rf.device_name=zmq --rf.device_args=tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,id=ue,base_srate=23.04e6 \
+    --usim.algo=xor --usim.imsi=001010123456780 --usim.k=00112233445566778899aabbccddeeff --usim.imei=353490069873310 \
+    --log.all_level=warn --log.filename=stdout --gw.netns=ue1
+```
+Note that we place the UE's mobile network interface in separate network namespace since the SPGW network interface from the EPC process is already in the root network namespace with an `192.168.0.1` address in the same subnet as the UE's address will be in.
+Note that the IMSI and key correspond to values for `ue2` in `/etc/srslte/user_db.csv`.  If you change the contents of that file, make sure to first kill the EPC process, then modify, then restart EPC.  The EPC process updates this file when it exits.
 
-10. To undeploy the `scp-kpimon` xApp, you can run these commands:
-    ```
-    export APPMGR_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-appmgr-http -o jsonpath='{.items[0].spec.clusterIP}'`
-    curl -L -X DELETE http://$APPMGR_HTTP:8080/ric/v1/xapps/scp-kpimon
-    ```
+6. In a new ssh connection to `node-0`, send some simple traffic from the simulated UE:
+```
+sudo ip netns exec ue1 ping 192.168.0.1
+```
+Now you should be seeing "real" performance metrics in the `kpimon` logfile tail process you started in Step 9, like
+```
+[qSkipTool]2020/10/13 23:31:09 control.go:127: Received message type: 12050
+[qSkipTool]2020/10/13 23:31:09 control.go:158: RIC Indication message from {enB_macro_661_8112_0019b0} received
+[qSkipTool]2020/10/13 23:31:09 control.go:159: RequestID: 123
+[qSkipTool]2020/10/13 23:31:09 control.go:160: RequestSequenceNumber: 17
+[qSkipTool]2020/10/13 23:31:09 control.go:161: FunctionID: 0
+[qSkipTool]2020/10/13 23:31:09 control.go:162: ActionID: 0
+[qSkipTool]2020/10/13 23:31:09 control.go:163: IndicationSN: 7
+[qSkipTool]2020/10/13 23:31:09 control.go:164: IndicationType: 0
+[qSkipTool]2020/10/13 23:31:09 control.go:165: IndicationHeader: 0866c118
+[qSkipTool]2020/10/13 23:31:09 control.go:166: IndicationMessage: 01040000024000000066c11800000000100066c1184a000050100866c1180001600000ac000060071034be1033b4
+[qSkipTool]2020/10/13 23:31:09 control.go:167: CallProcessID: 
+[qSkipTool]2020/10/13 23:31:09 control.go:181: -----------RIC Indication Header-----------
+[qSkipTool]2020/10/13 23:31:09 control.go:183: RIC Indication Header Format: 1
+[qSkipTool]2020/10/13 23:31:09 control.go:186: GlobalKPMnodeIDType: 0
+[qSkipTool]2020/10/13 23:31:09 control.go:268: PlmnID: 66c118
+[qSkipTool]2020/10/13 23:31:09 control.go:327: -----------RIC Indication Message-----------
+[qSkipTool]2020/10/13 23:31:09 control.go:328: StyleType: 4
+[qSkipTool]2020/10/13 23:31:09 control.go:330: RIC Indication Message Format: 1
+[qSkipTool]2020/10/13 23:31:09 control.go:334: PMContainerCount: 3
+[qSkipTool]2020/10/13 23:31:09 control.go:345: PMContainer[0]: 
+[qSkipTool]2020/10/13 23:31:09 control.go:352: PFContainerType: 1
+[qSkipTool]2020/10/13 23:31:09 control.go:355: oDU PF Container: 
+[qSkipTool]2020/10/13 23:31:09 control.go:360: CellResourceReportCount: 1
+[qSkipTool]2020/10/13 23:31:09 control.go:363: CellResourceReport[0]: 
+[qSkipTool]2020/10/13 23:31:09 control.go:367: nRCGI.PlmnID: 66c118
+[qSkipTool]2020/10/13 23:31:09 control.go:368: nRCGI.nRCellID: 0000000010
+[qSkipTool]2020/10/13 23:31:09 control.go:380: TotalofAvailablePRBsDL: -1
+[qSkipTool]2020/10/13 23:31:09 control.go:381: TotalofAvailablePRBsUL: -1
+[qSkipTool]2020/10/13 23:31:09 control.go:389: ServedPlmnPerCellCount: 1
+[qSkipTool]2020/10/13 23:31:09 control.go:392: ServedPlmnPerCell[0]: 
+[qSkipTool]2020/10/13 23:31:09 control.go:396: PlmnID: 
+[qSkipTool]2020/10/13 23:31:09 control.go:345: PMContainer[1]: 
+[qSkipTool]2020/10/13 23:31:09 control.go:352: PFContainerType: 2
+[qSkipTool]2020/10/13 23:31:09 control.go:444: oCU-CP PF Container: 
+[qSkipTool]2020/10/13 23:31:09 control.go:452: NumberOfActiveUEs: 1
+[qSkipTool]2020/10/13 23:31:09 control.go:345: PMContainer[2]: 
+[qSkipTool]2020/10/13 23:31:09 control.go:352: PFContainerType: 3
+[qSkipTool]2020/10/13 23:31:09 control.go:454: oCU-UP PF Container: 
+[qSkipTool]2020/10/13 23:31:09 control.go:463: CU-UP PF Container Item Count: 1
+[qSkipTool]2020/10/13 23:31:09 control.go:466: CU-UP PF Container Item [0]: 
+[qSkipTool]2020/10/13 23:31:09 control.go:470: InterfaceType: 2
+[qSkipTool]2020/10/13 23:31:09 control.go:473: CU-UP Plmn Count: 1
+[qSkipTool]2020/10/13 23:31:09 control.go:476: CU-UP Plmn [0]: 
+[qSkipTool]2020/10/13 23:31:09 control.go:480: PlmnID: 66c118
+[qSkipTool]2020/10/13 23:31:09 control.go:556: PerQCIReportCount: 2
+[qSkipTool]2020/10/13 23:31:09 control.go:559: PerQCIReport[0]: 
+[qSkipTool]2020/10/13 23:31:09 control.go:563: QCI: 0
+[qSkipTool]2020/10/13 23:31:09 control.go:566: PDCPBytesDL: 00ac
+[qSkipTool]2020/10/13 23:31:09 control.go:569: PDCPBytesUL: 00
+[qSkipTool]2020/10/13 23:31:09 control.go:559: PerQCIReport[1]: 
+[qSkipTool]2020/10/13 23:31:09 control.go:563: QCI: 7
+[qSkipTool]2020/10/13 23:31:09 control.go:566: PDCPBytesDL: 34be
+[qSkipTool]2020/10/13 23:31:09 control.go:569: PDCPBytesUL: 33b4
+```
+You should see that `NumberOfActiveUEs` is now `1`, and you should see `PDCPBytes` numbers in both the uplink and downlink, for multiple QCI values.  Note that these byte counters are per-measurement period, and as of this time of writing, the measurement period the kpimon app requests is 1024ms.
 
-11. To remove the xApp descriptor:
-    ```
-    export ONBOARDER_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-xapp-onboarder-http -o jsonpath='{.items[0].spec.clusterIP}'`
-    curl -L -X DELETE "http://$ONBOARDER_HTTP:8080/api/charts/scp-kpimon/1.0.1"
-    ```
+7. To run the demo again if you like, stop the eNodeB and UE via Ctrl-C.  Wait for the UE process to die before restarting the eNodeB.  Then stop the log output of the `scp-kpimon` xApp via Ctrl-C, run `kubectl -n ricxapp rollout restart deployment ricxapp-scp-kpimon` to redeploy the xApp, and re-run the log output.  If you re-run the command to access the log output too quickly, you will get a message that the container is still waiting to start.  Just run it until you see log output.
+
+8. To undeploy the `scp-kpimon` xApp, you can run these commands:
+```
+export APPMGR_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-appmgr-http -o jsonpath='{.items[0].spec.clusterIP}'`
+curl -L -X DELETE http://$APPMGR_HTTP:8080/ric/v1/xapps/scp-kpimon
+```
+
+9. To remove the xApp descriptor:
+```
+export ONBOARDER_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-xapp-onboarder-http -o jsonpath='{.items[0].spec.clusterIP}'`
+curl -L -X DELETE "http://$ONBOARDER_HTTP:8080/api/charts/scp-kpimon/1.0.1"
+```
+
+### Redeploying O-RAN (if necessary)
+
+If you want to change anything about your O-RAN deployment, or if a component has failed during a multi-day run, you can run the following commands.  (Note that you can edit `example_recipe.yaml` first if you want to change the version of any of the O-RAN containers, or bits of their configuration.)
+```
+cd /local/setup/oran/dep/bin
+./undeploy-ric-platform
+./deploy-ric-platform -f ../../example_recipe.yaml
+for ns in ricplt ricinfra ricxapp ; do kubectl get pods -n $ns; kubectl wait pod -n $ns --for=condition=Ready --all; done
+```
+After the pods in each RIC namespace are ready (the commands in the `for` loop complete successfully), you can re-run the demo.  Note that you must reset all the environment variables that were initialized in previous steps because O-RAN container and service IP addresses will have changed.
 """
 
 #
