@@ -79,9 +79,14 @@ echo '[kube-master]' >> $INV
 for node in `echo $NODES | cut -d ' ' -f-2` ; do
     echo "$node" >> $INV
 done
-# The first 3 nodes are etcd.
+# The first 1 or 3 nodes are etcd.
+if [ $NODECOUNT -lt 3 ]; then
+    etcdnodelist=`echo $NODES | cut -d ' ' -f-1`
+else
+    etcdnodelist=`echo $NODES | cut -d ' ' -f-3`
+fi
 echo '[etcd]' >> $INV
-for node in `echo $NODES | cut -d ' ' -f-3` ; do
+for node in $etcdnodelist ; do
     echo "$node" >> $INV
 done
 # The last 2--N nodes are kube-node, unless there is only one node.
