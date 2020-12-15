@@ -243,6 +243,8 @@ The install scripts create three Kubernetes namespaces: `ricplt`, `ricinfra`, an
 
 These instructions show you a demo of the interaction between an xApp, the RIC core, and an srsLTE RAN node (with RIC support).  You'll open several ssh connections to the node in your experiment so that you can deploy xApps and monitor the flow of information through the O-RAN RIC components.  If you're more interested in the overall demo, and less so in the gory details, you can skip the (optional) steps.
 
+(*Note:* if your POWDER account does not have `bash` nor `sh` set as its default shell, run `bash` first, since some of the demo commands use Bourne shell syntax for setting variables.)
+
 #### Viewing component log output:
 
 1. In a new ssh connection to `node-0`:
@@ -288,8 +290,8 @@ sudo sed -i -re 's/^(.*n_prb).*$/\\1 = 15/' /etc/srslte/enb.conf
 export E2TERM_SCTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-e2term-sctp-alpha -o jsonpath='{.items[0].spec.clusterIP}'`
 sudo /local/setup/srslte-ric/build/srsenb/src/srsenb \
     --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq \
-    --rf.device_args=fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001 \
-    --ric.agent.remote_ipv4_addr=$E2TERM_SCTP --log.all_level=warn --ric.agent.log_level=debug --log.filename=stdout
+    --rf.device_args="fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001" \
+    --ric.agent.remote_ipv4_addr=${E2TERM_SCTP} --log.all_level=warn --ric.agent.log_level=debug --log.filename=stdout
 ```
 The first line changes the available PRBs because we have everything on a single node, and absolute RAN performance is not the goal of this demo.
 The second line grabs the current E2 termination service's SCTP IP endpoint address (its kubernetes pod IP -- note that there is a different IP address for the E2 term service's HTTP endpoint); then, the second line runs an srsLTE eNodeB in simulated mode, which will connect to the E2 termination service.  If all goes well, within a few seconds, you will see XML message dumps of the E2SetupRequest (sent by the eNodeB) and the E2SetupResponse (sent by the E2 manager, and relayed to the eNodeB by the E2 termination service).
@@ -300,7 +302,7 @@ Once you start the `scp-kpimon` xApp in the next step, you will see more message
     ```
     export KONG_PROXY=`kubectl get svc -n ricplt -l app.kubernetes.io/name=kong -o jsonpath='{.items[0].spec.clusterIP}'`
     curl -L -X POST \
-        "http://$KONG_PROXY:32080/onboard/api/v1/onboard/download" \
+        "http://${KONG_PROXY}:32080/onboard/api/v1/onboard/download" \
         --header 'Content-Type: application/json' \
         --data-binary "@/local/profile-public/scp-kpimon-onboard.url"
     ```
@@ -308,13 +310,13 @@ Once you start the `scp-kpimon` xApp in the next step, you will see more message
     - Verify that the app was successfully created:
     ```
     curl -L -X GET \
-        "http://$KONG_PROXY:32080/onboard/api/v1/charts"
+        "http://${KONG_PROXY}:32080/onboard/api/v1/charts"
     ```
     (You should see a single JSON blob that refers to a Helm chart.)
     - Deploy the `scp-kpimon` xApp:
     ```
     curl -L -X POST \
-        "http://$KONG_PROXY:32080/appmgr/ric/v1/xapps" \
+        "http://${KONG_PROXY}:32080/appmgr/ric/v1/xapps" \
         --header 'Content-Type: application/json' \
         --data-raw '{"xappName": "scp-kpimon"}'
     ```
@@ -408,13 +410,13 @@ You should see that `NumberOfActiveUEs` is now `1`, and you should see `PDCPByte
 8. To undeploy the `scp-kpimon` xApp, you can run these commands:
 ```
 export APPMGR_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-appmgr-http -o jsonpath='{.items[0].spec.clusterIP}'`
-curl -L -X DELETE http://$APPMGR_HTTP:8080/ric/v1/xapps/scp-kpimon
+curl -L -X DELETE http://${APPMGR_HTTP}:8080/ric/v1/xapps/scp-kpimon
 ```
 
 9. To remove the xApp descriptor:
 ```
 export ONBOARDER_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-xapp-onboarder-http -o jsonpath='{.items[0].spec.clusterIP}'`
-curl -L -X DELETE "http://$ONBOARDER_HTTP:8080/api/charts/scp-kpimon/1.0.1"
+curl -L -X DELETE "http://${ONBOARDER_HTTP}:8080/api/charts/scp-kpimon/1.0.1"
 ```
 
 ### Redeploying O-RAN (if necessary)
@@ -424,7 +426,7 @@ If you want to change anything about your O-RAN deployment, or if a component ha
 cd /local/setup/oran/dep/bin
 ./undeploy-ric-platform
 ./deploy-ric-platform -f ../../example_recipe.yaml
-for ns in ricplt ricinfra ricxapp ; do kubectl get pods -n $ns; kubectl wait pod -n $ns --for=condition=Ready --all; done
+for ns in ricplt ricinfra ricxapp ; do kubectl get pods -n $ns ; kubectl wait pod -n $ns --for=condition=Ready --all; done
 ```
 After the pods in each RIC namespace are ready (the commands in the `for` loop complete successfully), you can re-run the demo.  Note that you must reset all the environment variables that were initialized in previous steps because O-RAN container and service IP addresses will have changed.
 """
