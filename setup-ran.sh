@@ -21,21 +21,24 @@ cd oai-ric
 git checkout develop-oran-ric
 cd cmake_targets
 
-wget -O $OURDIR/E2AP-generated-bindings.tar.gz \
-    https://www.emulab.net/downloads/johnsond/profile-oai-oran/E2AP-generated-bindings.tar.gz
+wget -O $OURDIR/E2AP-v01.00-generated-bindings.tar.gz \
+    https://www.emulab.net/downloads/johnsond/profile-oai-oran/E2AP-v01.00-generated-bindings.tar.gz
+wget -O $OURDIR/E2AP-v01.01-generated-bindings.tar.gz \
+    https://www.emulab.net/downloads/johnsond/profile-oai-oran/E2AP-v01.01-generated-bindings.tar.gz
 wget -O $OURDIR/E2SM-KPM-generated-bindings.tar.gz \
     https://www.emulab.net/downloads/johnsond/profile-oai-oran/E2SM-KPM-generated-bindings.tar.gz
 wget -O $OURDIR/E2SM-NI-generated-bindings.tar.gz \
     https://www.emulab.net/downloads/johnsond/profile-oai-oran/E2SM-NI-generated-bindings.tar.gz
 wget -O $OURDIR/E2SM-GNB-NRT-generated-bindings.tar.gz \
     https://www.emulab.net/downloads/johnsond/profile-oai-oran/E2SM-GNB-NRT-generated-bindings.tar.gz
-tar -xzvf $OURDIR/E2AP-generated-bindings.tar.gz -C $OURDIR
+tar -xzvf $OURDIR/E2AP-v01.00-generated-bindings.tar.gz -C $OURDIR
+tar -xzvf $OURDIR/E2AP-v01.01-generated-bindings.tar.gz -C $OURDIR
 tar -xzvf $OURDIR/E2SM-KPM-generated-bindings.tar.gz -C $OURDIR
 tar -xzvf $OURDIR/E2SM-NI-generated-bindings.tar.gz -C $OURDIR
 tar -xzvf $OURDIR/E2SM-GNB-NRT-generated-bindings.tar.gz -C $OURDIR
 
 ./build_oai -I --eNB --UE -w SIMU -g --verbose-compile \
-    --build-ric-agent --with-ric-generated-e2ap-binding-dir $OURDIR/E2AP \
+    --build-ric-agent --with-ric-generated-e2ap-binding-dir $OURDIR/E2AP-v01.00 \
     --with-ric-generated-e2sm-kpm-binding-dir $OURDIR/E2SM-KPM \
     --with-ric-generated-e2sm-ni-binding-dir $OURDIR/E2SM-NI \
     --with-ric-generated-e2sm-gnb-nrt-binding-dir $OURDIR/E2SM-GNB-NRT
@@ -667,7 +670,7 @@ mkdir -p build
 cd build
 cmake ../ \
     -DCMAKE_BUILD_TYPE=Debug \
-    -DRIC_GENERATED_E2AP_BINDING_DIR=$OURDIR/E2AP \
+    -DRIC_GENERATED_E2AP_BINDING_DIR=$OURDIR/E2AP-v01.01 \
     -DRIC_GENERATED_E2SM_KPM_BINDING_DIR=$OURDIR/E2SM-KPM \
     -DRIC_GENERATED_E2SM_NI_BINDING_DIR=$OURDIR/E2SM-NI \
     -DRIC_GENERATED_E2SM_GNB_NRT_BINDING_DIR=$OURDIR/E2SM-GNB-NRT
