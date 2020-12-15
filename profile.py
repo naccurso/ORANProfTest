@@ -198,7 +198,7 @@ This profile can be used to demo O-RAN and our OAI/srsLTE RIC agents, as well as
 
 ## Kubernetes
 
-Once your experiment nodes have booted, and the profile's scripts have finished configuring Kubernetes inside your experiment, you'll be able to visit [the Kubernetes Dashboard WWW interface](https://{host-node-0}:8080/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login) (approx. 10-15 minutes, depending on the performance of the node type you have selected).
+Once your experiment nodes have booted, and the profile's scripts have finished configuring Kubernetes inside your experiment, you'll be able to visit [the Kubernetes Dashboard WWW interface](https://{host-node-0}:8080/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login) .  This will take about 25 minutes on a `d740`, or 45 minutes on a `d430`.
 
 There are multiple ways to determine if the setup scripts have finished.
   - First, you can watch the experiment status page: the overall State will say \"booted (startup services are still running)\" to indicate that the nodes have booted up, but the setup scripts are still running.
