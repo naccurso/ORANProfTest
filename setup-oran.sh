@@ -29,12 +29,13 @@ $SUDO chown -R $SWAPPER ~/.docker
 #   E2SM-gNB-NRT when it was decoding them)
 # * submgr must not decode the E2SMs.
 #
-git clone https://gerrit.o-ran-sc.org/r/ric-plt/e2
+#git clone https://gerrit.o-ran-sc.org/r/ric-plt/e2
+git clone https://gitlab.flux.utah.edu/powderrenewpublic/e2
 cd e2
-git checkout f13529a2ae0cae8639cfcb3504b9850a571de873
+#git checkout 3f5c142bdef909687e4634ef5af22b4b280ecddf
 cd RIC-E2-TERMINATION
-$SUDO docker build -f Dockerfile -t ${HEAD}.cluster.local:5000/e2term:5.4.2 .
-$SUDO docker push ${HEAD}.cluster.local:5000/e2term:5.4.2
+$SUDO docker build -f Dockerfile -t ${HEAD}.cluster.local:5000/e2term:5.4.8 .
+$SUDO docker push ${HEAD}.cluster.local:5000/e2term:5.4.8
 cd ../..
 
 git clone https://gerrit.o-ran-sc.org/r/ric-plt/submgr
@@ -60,7 +61,7 @@ e2term:
     image:
       registry: "${HEAD}.cluster.local:5000"
       name: e2term
-      tag: 5.4.2
+      tag: 5.4.8
 submgr:
   image:
     registry: "${HEAD}.cluster.local:5000"
