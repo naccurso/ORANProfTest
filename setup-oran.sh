@@ -52,7 +52,7 @@ git clone http://gerrit.o-ran-sc.org/r/it/dep -b bronze
 cd dep
 git submodule update --init --recursive --remote
 
-helm init --client-only
+helm init --client-only --stable-repo-url "https://charts.helm.sh/stable"
 
 cp RECIPE_EXAMPLE/PLATFORM/example_recipe.yaml $OURDIR/oran
 cat <<EOF >$OURDIR/oran/example_recipe.yaml-override
