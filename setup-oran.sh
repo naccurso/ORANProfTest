@@ -21,6 +21,19 @@ $SUDO docker login -u docker -p docker https://nexus3.o-ran-sc.org:10002
 $SUDO chown -R $SWAPPER ~/.docker
 
 #
+# NB: The current build relies upon a non-existent image, so just use
+# the newer image.
+#
+$SUDO docker pull \
+    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:1.9.0
+$SUDO docker tag \
+    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:1.9.0 \
+    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:9-u18.04
+$SUDO docker tag \
+    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:9-u18.04 \
+    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:8-u18.04
+
+#
 # Custom-build the O-RAN components we might need.  Bronze release is
 # pretty much ok, but there are two components that need upgrades from
 # master:
@@ -100,17 +113,6 @@ cd ric-scp-kpimon
 git checkout revert-to-e2sm-kpm-01.00
 # Build this image and place it in our local repo, so that the onboard
 # file can use this repo, and the kubernetes ecosystem can pick it up.
-#
-# NB: The current build relies upon a non-existent image, so just use
-# the newer image.
-$SUDO docker pull \
-    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:1.9.0
-$SUDO docker tag \
-    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:1.9.0 \
-    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:9-u18.04
-$SUDO docker tag \
-    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:9-u18.04 \
-    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:8-u18.04
 $SUDO docker build . --tag $HEAD:5000/scp-kpimon:latest
 $SUDO docker push $HEAD:5000/scp-kpimon:latest
 
