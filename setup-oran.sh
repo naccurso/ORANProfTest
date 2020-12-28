@@ -104,6 +104,9 @@ git checkout revert-to-e2sm-kpm-01.00
 # NB: The current build relies upon a non-existent image, so just use
 # the newer image.
 $SUDO docker pull \
+    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:1.9.0
+$SUDO docker tag \
+    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:1.9.0 \
     nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:9-u18.04
 $SUDO docker tag \
     nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:9-u18.04 \
