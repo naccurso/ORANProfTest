@@ -25,6 +25,9 @@ $SUDO chown -R $SWAPPER ~/.docker
 # the newer image.
 #
 $SUDO docker pull \
+    nexus3.o-ran-sc.org:10002/o-ran-sc/bldr-ubuntu18-c-go:1.9.0
+$SUDO docker tag \
+    nexus3.o-ran-sc.org:10002/o-ran-sc/bldr-ubuntu18-c-go:1.9.0 \
     nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:1.9.0
 $SUDO docker tag \
     nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:1.9.0 \
