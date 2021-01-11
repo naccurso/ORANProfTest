@@ -57,7 +57,21 @@ pc.defineParameter(
     portal.ParameterType.BOOLEAN,False,
     longDescription="Multiplex any networks over physical interfaces using VLANs.  Some physical machines have only a single experiment network interface, so if you want multiple links/LANs, you have to enable multiplexing.  Currently, if you select this option.",
     advanced=True)
-
+pc.defineParameter(
+    "createSharedVlan","Create Shared VLAN",
+    portal.ParameterType.BOOLEAN,False,
+    longDescription="Create a new shared VLAN with the name above, and connect node-0 to it.  This requires a non-multiplexed physical network interface, so you can only use this parameter on node types that provide two or more physical network interfaces!",
+    advanced=True)
+pc.defineParameter(
+    "connectSharedVlan","Shared VLAN Name",
+    portal.ParameterType.STRING,"",
+    longDescription="Connect `node-0` to a shared VLAN.  This allows your O-RAN experiment to connect to another experiment.  This requires a non-multiplexed physical network interface, so you can only use this parameter on node types that provide two or more physical network interfaces!  If the shared VLAN does not yet exist (e.g. was not manually created for you by an administrator, or created in another experiment), enable the next option to create it.",
+    advanced=True)
+pc.defineParameter(
+    "sharedVlanAddress","Shared VLAN IP Address",
+    portal.ParameterType.STRING,"10.10.10.1/255.255.255.0",
+    longDescription="Set the IP address and subnet mask for the shared VLAN interface.  Make sure you choose an unused address within the subnet of an existing shared vlan!  Also ensure that you specify the subnet mask as a dotted quad.",
+    advanced=True)
 pc.defineParameter(
     "kubesprayRepo","Kubespray Git Repository",
     portal.ParameterType.STRING,
@@ -180,6 +194,20 @@ if params.kubeDoMetalLB and params.publicIPCount < 1:
         "If you enable MetalLB, you must request at least one public IP address!",
         ["kubeDoMetalLB","publicIPCount"])
     pc.reportWarning(perr)
+
+# Handle shared vlan address param.
+(sharedVlanAddress,sharedVlanNetmask) = (None,None)
+if params.sharedVlanAddress:
+    aa = params.sharedVlanAddress.split('/')
+    if len(aa) != 2:
+        perr = portal.ParameterError(
+            "Invalid shared VLAN address!",
+            ['sharedVlanAddress'])
+        pc.reportError(perr)
+        pc.verifyParameters()
+    else:
+        (sharedVlanAddress,sharedVlanNetmask) = (aa[0],aa[1])
+
 
 #
 # Give the library a chance to return nice JSON-formatted exception(s) and/or
@@ -454,6 +482,7 @@ if params.nodeCount > 1:
 
 nodes = dict({})
 
+sharedvlan = None
 for i in range(0,params.nodeCount):
     nodename = "node-%d" % (i,)
     node = RSpec.RawPC(nodename)
@@ -471,6 +500,19 @@ for i in range(0,params.nodeCount):
     if disableTestbedRootKeys:
         node.installRootKeys(False, False)
     nodes[nodename] = node
+    if i == 0 and params.connectSharedVlan:
+        iface = controller.addInterface("ifSharedVlan")
+        if sharedVlanAddress:
+            iface.addAddress(
+                RSpec.IPv4Address(sharedVlanAddress,sharedVlanNetmask))
+        sharedvlan = RSpec.LAN('shared-vlan')
+        sharedvlan.addInterface(iface)
+        if params.createSharedVlan:
+            sharedvlan.createSharedVlan(params.connectSharedVlan)
+        else:
+            sharedvlan.connectSharedVlan(params.connectSharedVlan)
+if sharedvlan:
+    rspec.addResource(sharedvlan)
 
 for nname in nodes.keys():
     rspec.addResource(nodes[nname])
