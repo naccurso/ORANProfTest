@@ -501,7 +501,7 @@ for i in range(0,params.nodeCount):
         node.installRootKeys(False, False)
     nodes[nodename] = node
     if i == 0 and params.connectSharedVlan:
-        iface = controller.addInterface("ifSharedVlan")
+        iface = node.addInterface("ifSharedVlan")
         if sharedVlanAddress:
             iface.addAddress(
                 RSpec.IPv4Address(sharedVlanAddress,sharedVlanNetmask))
