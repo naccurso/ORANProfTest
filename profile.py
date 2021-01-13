@@ -505,7 +505,7 @@ for i in range(0,params.nodeCount):
         if sharedVlanAddress:
             iface.addAddress(
                 RSpec.IPv4Address(sharedVlanAddress,sharedVlanNetmask))
-        sharedvlan = RSpec.LAN('shared-vlan')
+        sharedvlan = RSpec.Link('shared-vlan')
         sharedvlan.addInterface(iface)
         if params.createSharedVlan:
             sharedvlan.createSharedVlan(params.connectSharedVlan)
