@@ -511,6 +511,9 @@ for i in range(0,params.nodeCount):
             sharedvlan.createSharedVlan(params.connectSharedVlan)
         else:
             sharedvlan.connectSharedVlan(params.connectSharedVlan)
+        if params.multiplexLans:
+            sharedvlan.link_multiplexing = True
+            sharedvlan.best_effort = True
 if sharedvlan:
     rspec.addResource(sharedvlan)
 
