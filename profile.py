@@ -60,16 +60,16 @@ pc.defineParameter(
 pc.defineParameter(
     "createSharedVlan","Create Shared VLAN",
     portal.ParameterType.BOOLEAN,False,
-    longDescription="Create a new shared VLAN with the name above, and connect node-0 to it.  This requires a non-multiplexed physical network interface, so you can only use this parameter on node types that provide two or more physical network interfaces!",
+    longDescription="Create a new shared VLAN with the name above, and connect node-0 to it.",
     advanced=True)
 pc.defineParameter(
     "connectSharedVlan","Shared VLAN Name",
     portal.ParameterType.STRING,"",
-    longDescription="Connect `node-0` to a shared VLAN.  This allows your O-RAN experiment to connect to another experiment.  This requires a non-multiplexed physical network interface, so you can only use this parameter on node types that provide two or more physical network interfaces!  If the shared VLAN does not yet exist (e.g. was not manually created for you by an administrator, or created in another experiment), enable the next option to create it.",
+    longDescription="Connect `node-0` to a shared VLAN.  This allows your O-RAN experiment to connect to another experiment.  If the shared VLAN does not yet exist (e.g. was not manually created for you by an administrator, or created in another experiment), enable the next option to create it.",
     advanced=True)
 pc.defineParameter(
     "sharedVlanAddress","Shared VLAN IP Address",
-    portal.ParameterType.STRING,"10.10.10.1/255.255.255.0",
+    portal.ParameterType.STRING,"10.254.254.1/255.255.255.0",
     longDescription="Set the IP address and subnet mask for the shared VLAN interface.  Make sure you choose an unused address within the subnet of an existing shared vlan!  Also ensure that you specify the subnet mask as a dotted quad.",
     advanced=True)
 pc.defineParameter(
