@@ -15,6 +15,8 @@ cd $OURDIR
 
 $SRC/setup-e2-bindings.sh
 
+$SRC/setup-asn1c.sh
+
 #
 # srsLTE build
 #
