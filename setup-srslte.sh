@@ -17,6 +17,8 @@ $SRC/setup-e2-bindings.sh
 
 $SRC/setup-asn1c.sh
 
+logtstart "srslte"
+
 #
 # srsLTE build
 #
@@ -45,4 +47,5 @@ fi
 $SUDO make install
 $SUDO ./srslte_install_configs.sh service
 
+logtend "srslte"
 touch $OURDIR/setup-srslte-done

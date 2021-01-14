@@ -13,6 +13,8 @@ fi
 
 $SRC/setup-e2-bindings.sh
 
+logtstart "oai"
+
 #
 # OAI build
 #
@@ -641,6 +643,7 @@ EOF
 
 ln -s $OURDIR/enb-fdd-aws.conf $OURDIR/enb.conf
 
+logtend "oai"
 touch $OURDIR/setup-oai-done
 
 exit 0

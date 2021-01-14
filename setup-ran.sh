@@ -11,12 +11,16 @@ if [ -f $OURDIR/setup-ran-done ]; then
     exit 0
 fi
 
+#logtstart "ran"
+
 if [ "$BUILDSRSLTE" = "1" ]; then
     $SRC/setup-srslte.sh
 fi
 if [ "$BUILDOAI" = "1" ]; then
     $SRC/setup-oai.sh
 fi
+
+#logtend "ran"
 
 touch $OURDIR/setup-ran-done
 

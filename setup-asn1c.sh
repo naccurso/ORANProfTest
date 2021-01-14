@@ -11,6 +11,8 @@ if [ -f $OURDIR/setup-asn1c-done ]; then
     exit 0
 fi
 
+logtstart "asn1c"
+
 cd $OURDIR
 rm -rf $OURDIR/asn1c
 # GIT_SSL_NO_VERIFY=true
@@ -26,5 +28,7 @@ make -j`nproc`
 $SUDO make install
 cd ..
 $SUDO ldconfig
+
+logtend "asn1c"
 
 touch $OURDIR/setup-asn1c-done
