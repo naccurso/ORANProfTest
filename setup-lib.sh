@@ -110,6 +110,7 @@ DOLOCALREGISTRY=1
 BUILDSRSLTE=1
 BUILDOAI=0
 DOKPIMONDEPLOY=0
+DONEXRANDEPLOY=0
 
 #
 # We have an 'admin' user that gets a random password that comes in from

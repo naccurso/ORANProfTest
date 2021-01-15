@@ -4,7 +4,7 @@ set -x
 
 ALLNODESCRIPTS="setup-ssh.sh setup-disk-space.sh"
 HEADNODESCRIPTS="setup-nginx.sh setup-ssl.sh setup-kubespray.sh setup-kubernetes-extra.sh"
-HEADNODESCRIPTS="${HEADNODESCRIPTS} setup-oran.sh setup-ran.sh"
+HEADNODESCRIPTS="${HEADNODESCRIPTS} setup-oran.sh setup-ran.sh setup-xapp-kpimon.sh setup-xapp-nexran.sh"
 HEADNODESCRIPTS="${HEADNODESCRIPTS} setup-end.sh"
 
 export SRC=`dirname $0`
