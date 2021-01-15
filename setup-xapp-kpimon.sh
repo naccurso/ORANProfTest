@@ -27,7 +27,7 @@ curl --location --request GET "http://$KONG_PROXY:32080/onboard/api/v1/charts"
 # There are bugs in the initial version; and we don't have e2sm-kpm-01.02, so
 # we handle both those things.
 #
-cd $OURDIR/oran
+cd $OURDIR
 git clone https://gitlab.flux.utah.edu/powderrenewpublic/ric-scp-kpimon.git
 cd ric-scp-kpimon
 git checkout revert-to-e2sm-kpm-01.00

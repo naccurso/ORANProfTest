@@ -27,7 +27,7 @@ curl --location --request GET "http://$KONG_PROXY:32080/onboard/api/v1/charts"
 # There are bugs in the initial version; and we don't have e2sm-kpm-01.02, so
 # we handle both those things.
 #
-cd $OURDIR/oran
+cd $OURDIR
 git clone https://gitlab.flux.utah.edu/powderrenewpublic/nexran.git
 cd nexran
 # Build this image and place it in our local repo, so that the onboard
@@ -41,7 +41,7 @@ cat <<EOF >$WWWPUB/nexran-config-file.json
 {
     "json_url": "nexran",
     "xapp_name": "nexran",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "containers": [
         {
             "name": "nexran-xapp",
