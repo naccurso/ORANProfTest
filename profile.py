@@ -315,7 +315,7 @@ kubectl logs -f -n ricplt -l app=ricplt-rtmgr
 ```
 (to view the output of the RIC route manager, which manages RMR routes across the RIC components)
 
-#### Running the O-RAN/srsLTE demo:
+#### Running the O-RAN/srsLTE `scp-kpimon` demo:
 
 1. In a new ssh connection to `node-0`, run an srsLTE EPC:
 ```
@@ -456,6 +456,46 @@ curl -L -X DELETE http://${APPMGR_HTTP}:8080/ric/v1/xapps/scp-kpimon
 export ONBOARDER_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-xapp-onboarder-http -o jsonpath='{.items[0].spec.clusterIP}'`
 curl -L -X DELETE "http://${ONBOARDER_HTTP}:8080/api/charts/scp-kpimon/1.0.1"
 ```
+
+#### Running NexRAN:
+
+1. Deploy the NexRAN xApp similarly to scp-kpimon above:
+    - Onboard the NexRAN xApp:
+    ```
+    export KONG_PROXY=`kubectl get svc -n ricplt -l app.kubernetes.io/name=kong -o jsonpath='{.items[0].spec.clusterIP}'`
+    curl -L -X POST \
+        "http://${KONG_PROXY}:32080/onboard/api/v1/onboard/download" \
+        --header 'Content-Type: application/json' \
+        --data-binary "@/local/profile-public/nexran-onboard.url"
+    ```
+    (Note that the profile created `/local/profile-public/nexran-onboard.url`, a JSON file that points the onboarder to the xApp config file, and started an nginx endpoint to serve content (the xApp config file) on `node-0:7998`.  The referenced config file is in `/local/profile-public/nexran-config-file.json`.)
+    - Verify that the app was successfully created:
+    ```
+    curl -L -X GET \
+        "http://${KONG_PROXY}:32080/onboard/api/v1/charts"
+    ```
+    (You should see two JSON blobs that refers to a Helm chart; one for scp-kpimon, the other for NexRAN.)
+    - Deploy the NexRAN xApp:
+    ```
+    curl -L -X POST \
+        "http://${KONG_PROXY}:32080/appmgr/ric/v1/xapps" \
+        --header 'Content-Type: application/json' \
+        --data-raw '{"xappName": "nexran"}'
+    ```
+    - View the logs of the NexRAN xApp:
+    ```
+    kubectl logs -f -n ricxapp -l app=ricxapp-nexran
+    ```
+
+2. Issue a simple command to the NexRAN northbound administrative interface:
+    - Get the app's IP address:
+    ```
+    export NEXRAN_XAPP=`kubectl get svc -n ricxapp --field-selector metadata.name=service-ricxapp-nexran-rmr -o jsonpath='{.items[0].spec.clusterIP}'`
+    ```
+    - Issue an API call:
+    ```
+    curl -i http://${NEXRAN_XAPP}:8000/v1/version ; echo
+    ```
 
 ### Redeploying O-RAN (if necessary)
 
