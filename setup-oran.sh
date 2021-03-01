@@ -77,12 +77,17 @@ e2term:
       registry: "${HEAD}.cluster.local:5000"
       name: e2term
       tag: 5.4.8
+EOF
+if [ $RICVERSION -eq $RICBRONZE ]; then
+    cat <<EOF >>$OURDIR/oran/example_recipe.yaml-override
 submgr:
   image:
     registry: "${HEAD}.cluster.local:5000"
     name: submgr
     tag: 0.5.0
 EOF
+fi
+
 yq m --inplace --overwrite $OURDIR/oran/example_recipe.yaml \
     $OURDIR/oran/example_recipe.yaml-override
 
