@@ -29,7 +29,8 @@ OLDIMAGES="nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:1.9.0 nexus3.o-
 
 $SUDO docker pull $CURRENTIMAGE
 for oi in $OLDIMAGES ; do
-$SUDO docker tag $CURRENTIMAGE $oi
+    $SUDO docker tag $CURRENTIMAGE $oi
+done
 
 #
 # Custom-build the O-RAN components we might need.  Bronze release is
