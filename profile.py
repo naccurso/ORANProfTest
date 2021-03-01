@@ -47,6 +47,11 @@ pc.defineParameter(
     [(0,"Any"),(1000000,"1Gb/s"),(10000000,"10Gb/s"),(25000000,"25Gb/s"),(40000000,"40Gb/s"),(100000000,"100Gb/s")],
     longDescription="A specific link speed to use for each link/LAN.  All experiment network interfaces will request this speed.")
 pc.defineParameter(
+    "ricRelease","ORAN/RIC Release",
+    portal.ParameterType.STRING,"bronze",
+    [("cherry","cherry"),("bronze","bronze")],
+    longDescription="O-RAN RIC component version.  Even when you select a version, some components may be built from our own bugfix branches, and not specifically on the exact release branch.  This parameter specifies the default branch for components that we can use unmodified.")
+pc.defineParameter(
     "buildSrsLTE","Build SrsLTE",
     portal.ParameterType.BOOLEAN,True,
     longDescription="Build and install our version of SrsLTE with RIC support.",

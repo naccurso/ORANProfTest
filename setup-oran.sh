@@ -21,20 +21,15 @@ $SUDO docker login -u docker -p docker https://nexus3.o-ran-sc.org:10002
 $SUDO chown -R $SWAPPER ~/.docker
 
 #
-# NB: The current build relies upon a non-existent image, so just use
-# the newer image.
+# The O-RAN build image repo is purged pretty regularly, so re-tag old
+# image names to point to the latest thing, to enable old builds.
 #
-$SUDO docker pull \
-    nexus3.o-ran-sc.org:10002/o-ran-sc/bldr-ubuntu18-c-go:1.9.0
-$SUDO docker tag \
-    nexus3.o-ran-sc.org:10002/o-ran-sc/bldr-ubuntu18-c-go:1.9.0 \
-    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:1.9.0
-$SUDO docker tag \
-    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:1.9.0 \
-    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:9-u18.04
-$SUDO docker tag \
-    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:9-u18.04 \
-    nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:8-u18.04
+CURRENTIMAGE="nexus3.o-ran-sc.org:10002/o-ran-sc/bldr-ubuntu18-c-go:1.9.0"
+OLDIMAGES="nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:1.9.0 nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:9-u18.04 nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:8-u18.04"
+
+$SUDO docker pull $CURRENTIMAGE
+for oi in $OLDIMAGES ; do
+$SUDO docker tag $CURRENTIMAGE $oi
 
 #
 # Custom-build the O-RAN components we might need.  Bronze release is
@@ -45,6 +40,8 @@ $SUDO docker tag \
 #   E2SM-gNB-NRT when it was decoding them)
 # * submgr must not decode the E2SMs.
 #
+# cherry is ok too, except we still need a 4G enb e2 fix.
+#
 #git clone https://gerrit.o-ran-sc.org/r/ric-plt/e2
 git clone https://gitlab.flux.utah.edu/powderrenewpublic/e2
 cd e2
@@ -54,17 +51,19 @@ $SUDO docker build -f Dockerfile -t ${HEAD}.cluster.local:5000/e2term:5.4.8 .
 $SUDO docker push ${HEAD}.cluster.local:5000/e2term:5.4.8
 cd ../..
 
-git clone https://gerrit.o-ran-sc.org/r/ric-plt/submgr
-cd submgr
-git checkout f0d95262aba5c1d3770bd173d8ce054334b8a162
-$SUDO docker build . -t ${HEAD}.cluster.local:5000/submgr:0.5.0
-$SUDO docker push ${HEAD}.cluster.local:5000/submgr:0.5.0
-cd ..
+if [ $RICVERSION -eq $RICBRONZE ]; then
+    git clone https://gerrit.o-ran-sc.org/r/ric-plt/submgr
+    cd submgr
+    git checkout f0d95262aba5c1d3770bd173d8ce054334b8a162
+    $SUDO docker build . -t ${HEAD}.cluster.local:5000/submgr:0.5.0
+    $SUDO docker push ${HEAD}.cluster.local:5000/submgr:0.5.0
+    cd ..
+fi
 
 #
 # Deploy the platform.
 #
-git clone http://gerrit.o-ran-sc.org/r/it/dep -b bronze
+git clone http://gerrit.o-ran-sc.org/r/it/dep -b $RICRELEASE
 cd dep
 git submodule update --init --recursive --remote
 
