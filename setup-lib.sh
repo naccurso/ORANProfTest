@@ -290,6 +290,18 @@ fi
 . $OURDIR/parameters
 
 #
+# Adjust our RIC version if necessary.
+#
+if [ -z "$RICRELEASE" ]; then
+    RICRELEASE=$RICDEFAULTRELEASE
+fi
+if [ "$RICRELEASE" = "bronze" ]; then
+    RICVERSION=$RICBRONZE
+elif [ "$RICRELEASE" = "cherry" ]; then
+    RICVERSION=$RICCHERRY
+fi
+
+#
 # Grab our public addrs.
 #
 if [ ! -f $OURDIR/publicaddrs ]; then
