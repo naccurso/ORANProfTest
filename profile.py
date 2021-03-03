@@ -231,23 +231,40 @@ if params.sharedVlanAddress:
 pc.verifyParameters()
 
 tourDescription = \
-  "This profile creates a kubernetes cluster with kubespray, and installs the O-RAN Near-RT RIC on it.  When you click the Instantiate button, you'll be presented with a list of parameters that you can change to configure your O-RAN and kubernetes deployments.  Read the parameter documentation embedded in the parameter selector, or in the Instructions."
+  "This profile creates a kubernetes cluster with kubespray, and installs the O-RAN Near-RT RIC and builds xApps.  When you click the Instantiate button, you'll be presented with a list of parameters that you can change to configure your O-RAN and kubernetes deployments.  Before creating any experiments, read the Instructions, and the parameter documentation."
 
 tourInstructions = \
   """
 ## Instructions
 
-This profile can be used to demo O-RAN and our OAI/srsLTE RIC agents, as well as to develop and test the O-RAN platform and xApps.  You'll want to briefly read the Kubernetes section below to undestand how to access the Kubernetes cluster in your experiment.  Then you can read the O-RAN section further down for a guide to running demos on O-RAN.
+This profile can be used to deploy an O-RAN instance to connect to RAN resources (e.g. SDRs); to try O-RAN and our srsLTE/OAI RIC agents and xApp; and to develop and test the O-RAN platform and xApps.  You'll want to briefly read the Kubernetes section below to undestand how to access the Kubernetes cluster in your experiment.  Then you can read the O-RAN section further down for a guide to running demos on O-RAN.
 
-## Kubernetes
+## General Information
 
-Once your experiment nodes have booted, and the profile's scripts have finished configuring Kubernetes inside your experiment, you'll be able to visit [the Kubernetes Dashboard WWW interface](https://{host-node-0}:8080/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login) .  This will take about 25 minutes on a `d740`, or 45 minutes on a `d430`.
+Software used in this profile/demo setup:
+
+  * Fork of srsLTE with O-RAN support: https://gitlab.flux.utah.edu/powderrenewpublic/srslte-ric
+  * Our NexRAN RAN-slicing etc xApp: https://gitlab.flux.utah.edu/powderrenewpublic/nexran
+  * Fork of scp-kpimon metrics xApp with bugfixes: https://gitlab.flux.utah.edu/powderrenewpublic/ric-scp-kpimon
+  * O-RAN: https://wiki.o-ran-sc.org/display/GS/Getting+Started
+
+## Connecting to Other Experiments with RAN Resources
+
+(If you just want to run demos in simulated RAN mode, skip this section.  However, if you want to connect RAN resources (POWDER software-defined radios) to O-RAN for live over-the-air testing, it may be useful to create a single O-RAN experiment, and to later create one or more experiments containing RAN resources and connect them to your O-RAN experiment.  To do this, please read the documentation for the shared vlan parameters.  You'll create a shared vlan with the O-RAN experiment first, then later create RAN experiments that are told to connect to that shared vlan.  Make sure to use a random-ish shared vlan name; that secret could allow other experiments to join yours.  Finally, if you don't already have a RAN resource profile, you can start a simple NodeB/2 UE experiment to test over-the-"air" using the POWDER emulator, via this profile: https://www.powderwireless.net/p/PowderTeam/srslte-shvlan-oran .  This profile is configured specifically to connect to an O-RAN experiment, and includes instructions, so it's a good example if you are planning to connect another existing profile to an O-RAN experiment.)
+
+## Waiting for your Experiment to Complete Setup
+
+This is a complex profile that installs Kubernetes, O-RAN, and xApps (some components built from source) atop a bare Ubuntu image.  This will take about 25 minutes on a `d740`, or 45 minutes on a `d430`.  You cannot immediately begin running demos; first make sure that you can access the Kubernetes dashboard and see RIC namespaces/pods fully established.
 
 There are multiple ways to determine if the setup scripts have finished.
   - First, you can watch the experiment status page: the overall State will say \"booted (startup services are still running)\" to indicate that the nodes have booted up, but the setup scripts are still running.
   - Second, the Topology View will show you, for each node, the status of the startup command on each node (the startup command kicks off the setup scripts on each node).  Once the startup command has finished on each node, the overall State field will change to \"ready\".  If any of the startup scripts fail, you can mouse over the failed node in the topology viewer for the status code.
   - Third, the profile configuration scripts also send you two emails: once to notify you that kubernetes setup has started, and a second to notify you that setup has completed.  Once you receive the second email, you can login to the dashboard and begin your work.
   - Finally, you can view [the profile setup script logfiles](http://{host-node-0}:7999/) as the setup scripts run.  Use the `admin` username and the automatically-generated random password `{password-adminPass}` .
+
+## Kubernetes
+
+Once your experiment nodes have booted, and the profile's scripts have finished configuring Kubernetes inside your experiment, you'll be able to visit [the Kubernetes Dashboard WWW interface](https://{host-node-0}:8080/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login) .
 
 Once the dashboard is available, you can login with either basic or token authentication.  (You may also supply a kubeconfig file, but we don't provide one that includes a secret by default.)
   - `basic`: username `admin`, password `{password-adminPass}`
@@ -278,25 +295,25 @@ To change the Ansible and playbook configuration, you can start reading Kubespra
 
 ## O-RAN
 
-We deploy O-RAN primarily using [its install scripts](http://gerrit.o-ran-sc.org/r/it/dep), making minor modifications where necessary.  The profile gives you many options to change versions of specific components that are interesting to us, but not all combinations work -- O-RAN is under constant development.
+We deploy O-RAN primarily using [its install scripts](http://gerrit.o-ran-sc.org/r/it/dep), making minor modifications where necessary.  The profile gives you many options to change versions of specific components that are interesting to us, but not all combinations work -- O-RAN is under heavy development.
 
 The install scripts create three Kubernetes namespaces: `ricplt`, `ricinfra`, and `ricxapp`.  The platform components are deployed in the former namespace, and xApps are deployed in the latter.
 
-### O-RAN and srsLTE demo
+### RAN slicing demo
 
-These instructions show you a demo of the interaction between an xApp, the RIC core, and an srsLTE RAN node (with RIC support).  You'll open several ssh connections to the node in your experiment so that you can deploy xApps and monitor the flow of information through the O-RAN RIC components.  If you're more interested in the overall demo, and less so in the gory details, you can skip the (optional) steps.
+These instructions take you through you a demo of the interaction between our RAN slicing xApp, the RIC core, and an srsLTE RAN node (with RIC support).  You'll open several ssh connections to the node in your experiment so that you can deploy xApps and monitor the flow of information through the O-RAN RIC components.  If you're more interested in the overall demo, and less so in the gory details, you can skip the (optional) steps.  (You can also fire up a KPM metrics xApp written by Samsung with our bugfixes, and watch metrics arrive from the NodeB each second, as well; those instructions are in the next section.)
 
 (*Note:* if your POWDER account does not have `bash` nor `sh` set as its default shell, run `bash` first, since some of the demo commands use Bourne shell syntax for setting variables.)
 
 #### Viewing component log output:
 
-1. In a new ssh connection to `node-0`:
+1. (optional)  In a new ssh connection to `node-0`:
 ```
-kubectl logs -f -n ricplt -l app=ricplt-e2term
+kubectl logs -f -n ricplt -l app=ricplt-e2term-alpha
 ```
 (to view the output of the RIC E2 termination service, to which RAN nodes connect over SCTP).
 
-2. In a new ssh connection to `node-0`:
+2. (optional)  In a new ssh connection to `node-0`:
 ```
 kubectl logs -f -n ricplt -l app=ricplt-submgr
 ```
@@ -306,13 +323,13 @@ kubectl logs -f -n ricplt -l app=ricplt-submgr
 ```
 kubectl logs -f -n ricplt -l app=ricplt-e2mgr
 ```
-(to view the output of the RIC E2 manager service, which shows information about connecting RAN nodes)
+(to view the output of the RIC E2 manager service, which shows information about connected RAN nodes)
 
 4. (optional) In a new ssh connection to `node-0`:
 ```
 kubectl logs -f -n ricplt -l app=ricplt-appmgr
 ```
-(to view the output of the RIC application manager service)
+(to view the output of the RIC application manager service, which controls xApp deployment/lifecycle)
 
 5. (optional) In a new ssh connection to `node-0`:
 ```
@@ -320,27 +337,119 @@ kubectl logs -f -n ricplt -l app=ricplt-rtmgr
 ```
 (to view the output of the RIC route manager, which manages RMR routes across the RIC components)
 
-#### Running the O-RAN/srsLTE `scp-kpimon` demo:
+
+### Running the `nexran` RAN slicing demo:
+
+This demo runs srsLTE in simulated mode with a single UE.  This may not sound exciting from a RAN slicing standpoint, but because our slice scheduler has a toggleable work conserving mode, you can observe the effects of dynamic slice resource reconfiguration with a TCP stream to a single UE, and it's a bit easier to set up.
+
+#### Starting simulated EPC/NodeB/UE(s)
+
+(NB: if you have RAN resources in another experiment, you will most likely want to run both the EPC and NodeB near those RAN resources, and only deploy xApps using these demo instructions.  In that case, you would only need the part of Step 2 below that collects the `E2TERM_SCTP` environment variable.  Then you'll need to add a route from connected RAN experiments over the shared vlan to that IP address, which is within a virtual network inside Kubernetes.)
 
 1. In a new ssh connection to `node-0`, run an srsLTE EPC:
 ```
 sudo /local/setup/srslte-ric/build/srsepc/src/srsepc --spgw.sgi_if_addr=192.168.0.1
 ```
 
-1. In a new ssh connection to `node-0`, prepare and run an srsLTE eNodeB.
+2. In a new ssh connection to `node-0`, run an srsLTE eNodeB.
 ```
-sudo sed -i -re 's/^(.*n_prb).*$/\\1 = 15/' /etc/srslte/enb.conf
 export E2TERM_SCTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-e2term-sctp-alpha -o jsonpath='{.items[0].spec.clusterIP}'`
 sudo /local/setup/srslte-ric/build/srsenb/src/srsenb \
-    --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq \
+    --enb.n_prb=15 --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq \
     --rf.device_args="fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001" \
-    --ric.agent.remote_ipv4_addr=${E2TERM_SCTP} --log.all_level=warn --ric.agent.log_level=debug --log.filename=stdout
+    --ric.agent.remote_ipv4_addr=${E2TERM_SCTP} --log.all_level=warn --ric.agent.log_level=debug --log.filename=stdout \
+    --slicer.enable=1 --slicer.workshare=0
 ```
-The first line changes the available PRBs because we have everything on a single node, and absolute RAN performance is not the goal of this demo.
-The second line grabs the current E2 termination service's SCTP IP endpoint address (its kubernetes pod IP -- note that there is a different IP address for the E2 term service's HTTP endpoint); then, the second line runs an srsLTE eNodeB in simulated mode, which will connect to the E2 termination service.  If all goes well, within a few seconds, you will see XML message dumps of the E2SetupRequest (sent by the eNodeB) and the E2SetupResponse (sent by the E2 manager, and relayed to the eNodeB by the E2 termination service).
-Once you start the `scp-kpimon` xApp in the next step, you will see more message dumps as subscriptions are made and metrics are sent back to the xApp, so leave the eNodeB running.
+The first line grabs the current E2 termination service's SCTP IP endpoint address (its kubernetes pod IP -- note that there is a different IP address for the E2 term service's HTTP endpoint); then, the second line runs an srsLTE eNodeB in simulated mode, which will connect to the E2 termination service.  If all goes well, within a few seconds, you will see XML message dumps of the E2SetupRequest (sent by the eNodeB) and the E2SetupResponse (sent by the E2 manager, and relayed to the eNodeB by the E2 termination service).
+(NB: the first srsenb argument changes the available PRBs because when simulating we have everything on a single node, want to support older hardware, and absolute RAN performance is not the goal of this demo.)
+(NB: the final argument disables the default work-conserving behavior for the slice scheduler, so even if UEs bound to one slice do not fully use their allocated resources for a given TTI, those resources are *not* made available to other slices.  This allows us to experiment with dynamic slice resource allocation and observe changes to a single TCP stream and UE.)
 
-3. In a new ssh connection to `node-0`, run the following commands to onboard and deploy the `scp-kpimon` xApp:
+3.  In a new ssh connection to `node-0`, run a simulated UE, placing its network interface into a separate network namespace:
+```
+sudo ip netns add ue1
+sudo /local/setup/srslte-ric/build/srsue/src/srsue \
+    --rf.device_name=zmq --rf.device_args="tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,id=ue,base_srate=23.04e6" \
+    --usim.algo=xor --usim.imsi=001010123456789 --usim.k=00112233445566778899aabbccddeeff --usim.imei=353490069873310 \
+    --log.all_level=warn --log.filename=stdout --gw.netns=ue1
+```
+Note that we place the UE's mobile network interface in separate network namespace since the SPGW network interface from the EPC process is already in the root network namespace with an `192.168.0.1` address in the same subnet as the UE's address will be in.
+Note that the IMSI and key correspond to values for `ue1` in `/etc/srslte/user_db.csv`.  If you want to change the contents of that file, make sure to first kill the EPC process, then modify, then restart EPC.  The EPC process updates this file when it exits.
+
+#### Running the NexRAN xApp
+
+1.  In a new ssh connection to `node-0`, onboard and deploy the `nexran` xApp:
+    - Onboard the `nexran` xApp:
+    ```
+    export KONG_PROXY=`kubectl get svc -n ricplt -l app.kubernetes.io/name=kong -o jsonpath='{.items[0].spec.clusterIP}'`
+    curl -L -X POST \
+        "http://${KONG_PROXY}:32080/onboard/api/v1/onboard/download" \
+        --header 'Content-Type: application/json' \
+        --data-binary "@/local/profile-public/nexran-onboard.url"
+    ```
+    (Note that the profile created `/local/profile-public/nexran-onboard.url`, a JSON file that points the onboarder to the xApp config file, and started an nginx endpoint to serve content (the xApp config file) on `node-0:7998`.  The referenced config file is in `/local/profile-public/nexran-config-file.json`.)
+    - Verify that the app was successfully created:
+    ```
+    curl -L -X GET \
+        "http://${KONG_PROXY}:32080/onboard/api/v1/charts"
+    ```
+    (You should see a single JSON blob that refers to a Helm chart.)
+    - Deploy the `nexran` xApp:
+    ```
+    curl -L -X POST \
+        "http://${KONG_PROXY}:32080/appmgr/ric/v1/xapps" \
+        --header 'Content-Type: application/json' \
+        --data-raw '{"xappName": "nexran"}'
+    ```
+    - View the logs of the `nexran` xApp:
+    ```
+    kubectl logs -f -n ricxapp -l app=ricxapp-nexran
+    ```
+    (This shows the output of the `nexran` xApp, including debug messages as slicing commands are sent to the xApp, which passes them down to the targeted NodeB.)
+
+2.  In a new ssh connection to `node-0`, collect the IP address of the `nexran` northbound RESTful interface (so that you can send API invocations via `curl`).  This is the terminal you will use to run the demo driver script.
+```
+export NEXRAN_XAPP=`kubectl get svc -n ricxapp --field-selector metadata.name=service-ricxapp-nexran-rmr -o jsonpath='{.items[0].spec.clusterIP}'` ; echo $NEXRAN_XAPP
+```
+
+3.  Make sure you can talk to the `nexran` xApp:
+```
+curl -i -X GET http://${NEXRAN_XAPP}:8000/v1/version ; echo ; echo
+```
+(You should see some version/build info, formatted as a JSON document.)
+
+4.  In a new ssh connection to `node-0`, run an iperf server *in the UE's network namespace* (so that you can observe the effects of dynamic slicing in the downlink:
+```
+sudo ip netns exec ue1 iperf -s -p 5010 -i 4 -t 36000
+```
+
+5.  In a new ssh connection to `node-0`, run an iperf client:
+```
+iperf -c 192.168.0.2 -p 5010 -i 4 -t 36000
+```
+You should see a bandwidth of approximately 35-40Mbps on a `d740` with 15 PRBs; but the important thing is to observe the baseline.  By default, unsliced UEs can utilize all available downlink PRBs.
+
+6.  Run the simple demo script.  (This script creates two slices, `fast` and `slow`, where `fast` is given a proportional share of `1024` (the max, range is `1-1024`), and `slow` is given a share of `256`.
+```
+/local/repository/run-nexran-demo.sh
+```
+You will see several API invocations, and their return output, scroll past, each prefixed with a message indicating the intent of the invocation.  You should see the client bandwidth drop to around 29Mbps.  This happens because the `fast` slice now has an 80% share of the available bandwidth, and work-conserving mode is disable, so the scheduler is leaving 20% of the PRBs available for UEs bound to the `slow` slice.
+
+7.  Invert the priority of the `fast` and `slow` slices:
+```
+curl -i -X PUT -H "Content-type: application/json" -d '{"allocation_policy":{"type":"proportional","share":1024}}' http://${NEXRAN_XAPP}:8000/v1/slices/slow ; echo ; echo ;
+curl -i -X PUT -H "Content-type: application/json" -d '{"allocation_policy":{"type":"proportional","share":256}}' http://${NEXRAN_XAPP}:8000/v1/slices/fast ; echo ; echo
+```
+You should see the client bandwidth drop further, to around 7Mbps.
+
+8.  Equalize the priority of the `fast` slice to match the modified `slow` slice:
+```
+curl -i -X PUT -H "Content-type: application/json" -d '{"allocation_policy":{"type":"proportional","share":1024}}' http://${NEXRAN_XAPP}:8000/v1/slices/fast ; echo ; echo
+```
+You should see the client bandwidth increase to around 18Mbps, because now both slices are allocated a 50% share.
+
+### KPM (metrics) demo
+
+1. In a new ssh connection to `node-0`, run the following commands to onboard and deploy the `scp-kpimon` xApp:
     - Onboard the `scp-kpimon` xApp:
     ```
     export KONG_PROXY=`kubectl get svc -n ricplt -l app.kubernetes.io/name=kong -o jsonpath='{.items[0].spec.clusterIP}'`
@@ -375,18 +484,7 @@ kubectl exec -it -n ricxapp `kubectl get pod -n ricxapp -l app=ricxapp-scp-kpimo
 ```
 This will show the decoded metric reports as they arrive from the eNodeB.  We have not yet started a UE, so the reports will not initially have much content, and you'll see that `NumberOfActiveUEs` is `0`.  Note that the command is complicated because you must explicitly name a pod to `kubectl exec`, and pod names have random characters in them.  Thus, if you re-dploy the xApp, the pod name will change; hence the embedded command to find the pod name.
 
-5. In a new ssh connection to `node-0`, run a simulated UE, placing its network interface into a separate network namespace:
-```
-sudo ip netns add ue1
-sudo /local/setup/srslte-ric/build/srsue/src/srsue \
-    --rf.device_name=zmq --rf.device_args="tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,id=ue,base_srate=23.04e6" \
-    --usim.algo=xor --usim.imsi=001010123456789 --usim.k=00112233445566778899aabbccddeeff --usim.imei=353490069873310 \
-    --log.all_level=warn --log.filename=stdout --gw.netns=ue1
-```
-Note that we place the UE's mobile network interface in separate network namespace since the SPGW network interface from the EPC process is already in the root network namespace with an `192.168.0.1` address in the same subnet as the UE's address will be in.
-Note that the IMSI and key correspond to values for `ue1` in `/etc/srslte/user_db.csv`.  If you want to change the contents of that file, make sure to first kill the EPC process, then modify, then restart EPC.  The EPC process updates this file when it exits.
-
-6. In a new ssh connection to `node-0`, send some simple traffic from the simulated UE:
+5.  (if you already stopped the iperfs from the slicing demo, or skipped it) In a new ssh connection to `node-0`, send some simple traffic from the simulated UE:
 ```
 sudo ip netns exec ue1 ping 192.168.0.1
 ```
@@ -448,59 +546,28 @@ Now you should be seeing "real" performance metrics in the `kpimon` logfile tail
 ```
 You should see that `NumberOfActiveUEs` is now `1`, and you should see `PDCPBytes` numbers in both the uplink and downlink, for multiple QCI values.  Note that these byte counters are per-measurement period, and as of this time of writing, the measurement period the kpimon app requests is 1024ms.
 
-7. To run the demo again if you like, stop the eNodeB and UE via Ctrl-C.  Wait for the UE process to die before restarting the eNodeB.  Then stop the log output of the `scp-kpimon` xApp via Ctrl-C, run `kubectl -n ricxapp rollout restart deployment ricxapp-scp-kpimon` to redeploy the xApp, and re-run the log output.  If you re-run the command to access the log output too quickly, you will get a message that the container is still waiting to start.  Just run it until you see log output.
+### Undeploying and Redeploying Apps (e.g. to re-run demos)
 
-8. To undeploy the `scp-kpimon` xApp, you can run these commands:
+1. To run the demo again if you like, stop the EPC/eNodeB/UE via Ctrl-C.  Wait for the UE process to die before restarting the eNodeB.  You can redeploy xApps via
+```
+kubectl -n ricxapp rollout restart deployment ricxapp-nexran
+kubectl -n ricxapp rollout restart deployment ricxapp-scp-kpimon
+```
+(If you re-run the commands to access the log output of these containers too quickly, you will get a message that the container is still waiting to start.  Just run it until you see log output.)
+
+8. To undeploy the xApps, you can run
 ```
 export APPMGR_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-appmgr-http -o jsonpath='{.items[0].spec.clusterIP}'`
+curl -L -X DELETE http://${APPMGR_HTTP}:8080/ric/v1/xapps/nexran
 curl -L -X DELETE http://${APPMGR_HTTP}:8080/ric/v1/xapps/scp-kpimon
 ```
 
-9. To remove the xApp descriptor:
+9. To remove the xApp descriptors (e.g. to re-upload with new images or configuration):
 ```
 export ONBOARDER_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-xapp-onboarder-http -o jsonpath='{.items[0].spec.clusterIP}'`
+curl -L -X DELETE "http://${ONBOARDER_HTTP}:8080/api/charts/nexran/0.1.0"
 curl -L -X DELETE "http://${ONBOARDER_HTTP}:8080/api/charts/scp-kpimon/1.0.1"
 ```
-
-#### Running NexRAN:
-
-1. Deploy the NexRAN xApp similarly to scp-kpimon above:
-    - Onboard the NexRAN xApp:
-    ```
-    export KONG_PROXY=`kubectl get svc -n ricplt -l app.kubernetes.io/name=kong -o jsonpath='{.items[0].spec.clusterIP}'`
-    curl -L -X POST \
-        "http://${KONG_PROXY}:32080/onboard/api/v1/onboard/download" \
-        --header 'Content-Type: application/json' \
-        --data-binary "@/local/profile-public/nexran-onboard.url"
-    ```
-    (Note that the profile created `/local/profile-public/nexran-onboard.url`, a JSON file that points the onboarder to the xApp config file, and started an nginx endpoint to serve content (the xApp config file) on `node-0:7998`.  The referenced config file is in `/local/profile-public/nexran-config-file.json`.)
-    - Verify that the app was successfully created:
-    ```
-    curl -L -X GET \
-        "http://${KONG_PROXY}:32080/onboard/api/v1/charts"
-    ```
-    (You should see two JSON blobs that refers to a Helm chart; one for scp-kpimon, the other for NexRAN.)
-    - Deploy the NexRAN xApp:
-    ```
-    curl -L -X POST \
-        "http://${KONG_PROXY}:32080/appmgr/ric/v1/xapps" \
-        --header 'Content-Type: application/json' \
-        --data-raw '{"xappName": "nexran"}'
-    ```
-    - View the logs of the NexRAN xApp:
-    ```
-    kubectl logs -f -n ricxapp -l app=ricxapp-nexran
-    ```
-
-2. Issue a simple command to the NexRAN northbound administrative interface:
-    - Get the app's IP address:
-    ```
-    export NEXRAN_XAPP=`kubectl get svc -n ricxapp --field-selector metadata.name=service-ricxapp-nexran-rmr -o jsonpath='{.items[0].spec.clusterIP}'`
-    ```
-    - Issue an API call:
-    ```
-    curl -i http://${NEXRAN_XAPP}:8000/v1/version ; echo
-    ```
 
 ### Redeploying O-RAN (if necessary)
 
