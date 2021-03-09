@@ -87,6 +87,15 @@ submgr:
     name: submgr
     tag: 0.5.0
 EOF
+elif [ $RICVERSION -eq $RICCHERRY ]; then
+    # Cherry release of `dep` includes old broken submgr
+    cat <<EOF >>$OURDIR/oran/example_recipe.yaml-override
+submgr:
+  image:
+    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+    name: ric-plt-submgr
+    tag: 0.5.8
+EOF
 fi
 
 yq m --inplace --overwrite $OURDIR/oran/example_recipe.yaml \
