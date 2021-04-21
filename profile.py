@@ -49,7 +49,7 @@ pc.defineParameter(
 pc.defineParameter(
     "ricRelease","ORAN/RIC Release",
     portal.ParameterType.STRING,"cherry",
-    [("cherry","cherry"),("bronze","bronze")],
+    [("cherry","cherry")],
     longDescription="O-RAN RIC component version.  Even when you select a version, some components may be built from our own bugfix branches, and not specifically on the exact release branch.  This parameter specifies the default branch for components that we can use unmodified.")
 pc.defineParameter(
     "buildSrsLTE","Build SrsLTE",
