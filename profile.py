@@ -148,7 +148,7 @@ pc.defineParameter(
     advanced=True)
 pc.defineParameter(
     "kubePodsSubnet","Kubernetes Pods Subnet",
-    portal.ParameterType.STRING,"10.244.0.0/16",
+    portal.ParameterType.STRING,"10.233.0.0/16",
     longDescription="The subnet containing pod addresses.",
     advanced=True)
 pc.defineParameter(
