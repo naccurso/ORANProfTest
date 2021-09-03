@@ -101,6 +101,8 @@ fi
 yq m --inplace --overwrite $OURDIR/oran/example_recipe.yaml \
     $OURDIR/oran/example_recipe.yaml-override
 
+helm version -c --short | grep -q v3
+HELM_IS_V3=$?
 if [ $HELM_IS_V3 -eq 0 ]; then
     # We don't want to use their chartmuseum setup; we already had one
     # that only binds on localhost, so just use that.
