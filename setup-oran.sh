@@ -101,8 +101,21 @@ fi
 yq m --inplace --overwrite $OURDIR/oran/example_recipe.yaml \
     $OURDIR/oran/example_recipe.yaml-override
 
-cd bin
-./deploy-ric-platform -f $OURDIR/oran/example_recipe.yaml
+if [ $HELM_IS_V3 -eq 0 ]; then
+    # We don't want to use their chartmuseum setup; we already had one
+    # that only binds on localhost, so just use that.
+    # But unfortunately, their helm v3 setup is completely intermingled
+    # with the chart packaging... and they don't properly use chartmuseum;
+    # they just copy files into place.  So we have to do everything manually.
+    # They also assume ownership of the helm local repo... we need to work
+    # around this eventually, e.g. to co-deploy oran and onap.
+    cd bin \
+        && $SUDO ./deploy-ric-platform -f $OURDIR/oran/example_recipe.yaml
+else
+    cd bin \
+	&& ./deploy-ric-platform -f $OURDIR/oran/example_recipe.yaml
+fi
+
 for ns in ricplt ricinfra ricxapp ; do
     kubectl get pods -n $ns
     kubectl wait pod -n $ns --for=condition=Ready --all

@@ -3,9 +3,10 @@
 set -x
 
 ALLNODESCRIPTS="setup-ssh.sh setup-disk-space.sh"
-HEADNODESCRIPTS="setup-nginx.sh setup-ssl.sh setup-kubespray.sh setup-kubernetes-extra.sh"
+HEADNODESCRIPTS="setup-nfs-server.sh setup-nginx.sh setup-ssl.sh setup-kubespray.sh setup-kubernetes-extra.sh"
 HEADNODESCRIPTS="${HEADNODESCRIPTS} setup-oran.sh setup-ran.sh setup-xapp-kpimon.sh setup-xapp-nexran.sh"
 HEADNODESCRIPTS="${HEADNODESCRIPTS} setup-end.sh"
+WORKERNODESCRIPTS="setup-nfs-client.sh"
 
 export SRC=`dirname $0`
 cd $SRC
@@ -22,6 +23,11 @@ for script in $ALLNODESCRIPTS ; do
 done
 if [ "$HOSTNAME" = "node-0" ]; then
     for script in $HEADNODESCRIPTS ; do
+	cd $SRC
+	$SRC/$script | tee - $OURDIR/${script}.log 2>&1
+    done
+else
+    for script in $WORKERNODESCRIPTS ; do
 	cd $SRC
 	$SRC/$script | tee - $OURDIR/${script}.log 2>&1
     done

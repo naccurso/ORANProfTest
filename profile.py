@@ -87,6 +87,7 @@ pc.defineParameter(
     portal.ParameterType.STRING,"10.254.254.1/255.255.255.0",
     longDescription="Set the IP address and subnet mask for the shared VLAN interface.  Make sure you choose an unused address within the subnet of an existing shared vlan!  Also ensure that you specify the subnet mask as a dotted quad.",
     advanced=True)
+
 pc.defineParameter(
     "kubesprayRepo","Kubespray Git Repository",
     portal.ParameterType.STRING,
@@ -95,8 +96,8 @@ pc.defineParameter(
     advanced=True)
 pc.defineParameter(
     "kubesprayVersion","Kubespray Version",
-    portal.ParameterType.STRING,"release-2.13",
-    longDescription="A tag or commit-ish value; we will run `git checkout <value>`.  The default value is the most recent stable value we have tested.  You should only change this if you need a new feature only available on `master`, or an old feature from a prior release.",
+    portal.ParameterType.STRING,"release-2.16",
+    longDescription="A tag or commit-ish value; we will run `git checkout <value>`.  The default value is the most recent stable value we have tested.  You should only change this if you need a new feature only available on `master`, or an old feature from a prior release.  We support versions back to release-2.13 only.",
     advanced=True)
 pc.defineParameter(
     "kubesprayUseVirtualenv","Kubespray VirtualEnv",
@@ -105,12 +106,12 @@ pc.defineParameter(
     advanced=True)
 pc.defineParameter(
     "kubeVersion","Kubernetes Version",
-    portal.ParameterType.STRING,"v1.16.14",
-    longDescription="A specific release of Kubernetes to install (e.g. v1.16.3); if left empty, Kubespray will choose its current stable version and install that.  You can check for Kubespray-known releases at https://github.com/kubernetes-sigs/kubespray/blob/release-2.13/roles/download/defaults/main.yml (or if you're using a different Kubespray release, choose the corresponding feature release branch in that URL).  You can use unsupported or unknown versions, however, as long as the binaries actually exist.",
+    portal.ParameterType.STRING,"",
+    longDescription="A specific release of Kubernetes to install (e.g. v1.16.3); if left empty, Kubespray will choose its current stable version and install that.  You can check for Kubespray-known releases at https://github.com/kubernetes-sigs/kubespray/blob/release-2.16/roles/download/defaults/main.yml (or if you're using a different Kubespray release, choose the corresponding feature release branch in that URL).  You can use unsupported or unknown versions, however, as long as the binaries actually exist.",
     advanced=True)
 pc.defineParameter(
     "helmVersion","Helm Version",
-    portal.ParameterType.STRING,"v2.12.3",
+    portal.ParameterType.STRING,"",
     longDescription="A specific release of Helm to install (e.g. v2.12.3); if left empty, Kubespray will choose its current stable version and install that.  Note that the version you pick must exist as a tag in this Docker image repository: https://hub.docker.com/r/lachlanevenson/k8s-helm/tags .",
     advanced=True)
 pc.defineParameter(
@@ -193,6 +194,11 @@ pc.defineParameter(
     [("proxy","Web Proxy")],
     advanced=True,
     longDescription="Choose where you want the SSL certificates deployed.  Currently the only option is for them to be configured as part of the web proxy to the dashboard.")
+pc.defineParameter(
+    "doNFS","Enable NFS",
+    portal.ParameterType.BOOLEAN,True,
+    longDescription="We enable NFS by default, to be used by persistent volumes in Kubernetes services.",
+    advanced=True)
 
 #
 # Get any input parameter values that will override our defaults.
@@ -222,7 +228,6 @@ if params.sharedVlanAddress:
         pc.verifyParameters()
     else:
         (sharedVlanAddress,sharedVlanNetmask) = (aa[0],aa[1])
-
 
 #
 # Give the library a chance to return nice JSON-formatted exception(s) and/or

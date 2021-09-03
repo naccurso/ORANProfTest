@@ -82,7 +82,7 @@ UBUNTUMIRRORPATH=""
 KUBESPRAYREPO="https://github.com/kubernetes-incubator/kubespray.git"
 KUBESPRAYUSEVIRTUALENV=1
 KUBESPRAY_VIRTUALENV=kubespray-virtualenv
-KUBESPRAYVERSION=release-2.13
+KUBESPRAYVERSION=release-2.16
 DOCKERVERSION=
 DOCKEROPTIONS=
 KUBEVERSION=
@@ -107,6 +107,10 @@ SINGLENODE_MGMT_NETMASK=255.255.0.0
 SINGLENODE_MGMT_NETBITS=16
 SINGLENODE_MGMT_CIDR=${SINGLENODE_MGMT_IP}/${SINGLENODE_MGMT_NETBITS}
 DOLOCALREGISTRY=1
+STORAGEDIR=/storage
+DONFS=1
+NFSEXPORTDIR=$STORAGEDIR/nfs
+NFSMOUNTDIR=/nfs
 BUILDSRSLTE=1
 BUILDOAI=0
 DOKPIMONDEPLOY=0
@@ -599,6 +603,23 @@ getnetmaskprefix() {
     fi
     prefix=`netmask2prefix $netmask`
     echo $prefix
+}
+
+getnetworkip() {
+    node=$1
+    network=$2
+    nodeip=`getnodeip $node $network`
+    netmask=`getnetmask $network`
+
+    IFS=.
+    read -r i1 i2 i3 i4 <<EOF
+$nodeip
+EOF
+    read -r m1 m2 m3 m4 <<EOF
+$netmask
+EOF
+    unset IFS
+    printf "%d.%d.%d.%d\n" "$((i1 & m1))" "$((i2 & m2))" "$((i3 & m3))" "$((i4 & m4))"
 }
 
 ##
