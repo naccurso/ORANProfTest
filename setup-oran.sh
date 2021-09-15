@@ -73,6 +73,7 @@ fi
 git clone $DEPREPO -b $DEPBRANCH
 cd dep
 git submodule update --init --recursive --remote
+git submodule update
 
 helm init --client-only --stable-repo-url "https://charts.helm.sh/stable"
 
