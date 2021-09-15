@@ -64,7 +64,13 @@ fi
 #
 # Deploy the platform.
 #
-git clone http://gerrit.o-ran-sc.org/r/it/dep -b $RICRELEASE
+DEPREPO=http://gerrit.o-ran-sc.org/r/it/dep
+DEPBRANCH=$RICRELEASE
+if [ $RICVERSION -eq $RICCHERRY ]; then
+    DEPREPO=https://gitlab.flux.utah.edu/powderrenewpublic/dep
+    DEPBRANCH=cherry-powder
+fi
+git clone $DEPREPO -b $DEPBRANCH
 cd dep
 git submodule update --init --recursive --remote
 
