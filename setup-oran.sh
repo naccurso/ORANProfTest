@@ -104,19 +104,29 @@ yq m --inplace --overwrite $OURDIR/oran/example_recipe.yaml \
 helm version -c --short | grep -q v3
 HELM_IS_V3=$?
 if [ $HELM_IS_V3 -eq 0 ]; then
-    # We don't want to use their chartmuseum setup; we already had one
-    # that only binds on localhost, so just use that.
-    # But unfortunately, their helm v3 setup is completely intermingled
-    # with the chart packaging... and they don't properly use chartmuseum;
-    # they just copy files into place.  So we have to do everything manually.
+    # Unfortunately, the helm setup is completely intermingled
+    # with the chart packaging... and chartmuseum APIs aren't used to upload;
+    # just copy files into place.  So we have to do everything manually.
     # They also assume ownership of the helm local repo... we need to work
     # around this eventually, e.g. to co-deploy oran and onap.
-    cd bin \
-        && $SUDO ./deploy-ric-platform -f $OURDIR/oran/example_recipe.yaml
-else
-    cd bin \
-	&& ./deploy-ric-platform -f $OURDIR/oran/example_recipe.yaml
+    #
+    # So for now, we start up the helm servecm plugin ourselves.
+
+    # This becomes root on our behalf :-/
+    # NB: we need >= 0.13 so that we can get the version that
+    # can restrict bind to localhost.
+    #
+    # helm servecm will prompt us if helm is not already installed,
+    # so do this manually.
+    curl -o - https://raw.githubusercontent.com/helm/chartmuseum/main/scripts/get-chartmuseum \
+	| bash
+    helm plugin install https://github.com/jdolitsky/helm-servecm
+    eval `helm env | grep HELM_REPOSITORY_CACHE`
+    nohup helm servecm --port=8879 --context-path=/charts --storage local --storage-local-rootdir $HELM_REPOSITORY_CACHE/local/ --listen-host localhost 2>&1 >/dev/null &
+    sleep 4
 fi
+cd bin \
+    && ./deploy-ric-platform -f $OURDIR/oran/example_recipe.yaml
 
 for ns in ricplt ricinfra ricxapp ; do
     kubectl get pods -n $ns
