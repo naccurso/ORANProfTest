@@ -199,6 +199,11 @@ pc.defineParameter(
     portal.ParameterType.BOOLEAN,True,
     longDescription="We enable NFS by default, to be used by persistent volumes in Kubernetes services.",
     advanced=True)
+pc.defineParameter(
+    "nfsAsync","Export NFS volume async",
+    portal.ParameterType.BOOLEAN,False,
+    longDescription="Force the default NFS volume to be exported `async`.  When enabled, clients will only be given asynchronous write behavior even if they request sync or write with sync flags.  This is dangerous, but some applications that rely on persistent storage cannot be configured to use more helpful sync options (e.g., fsync instead of O_DIRECT).  It will give you the absolute best performance, however.",
+    advanced=True)
 
 #
 # Get any input parameter values that will override our defaults.
@@ -235,14 +240,60 @@ if params.sharedVlanAddress:
 #
 pc.verifyParameters()
 
-tourDescription = \
-  "This profile creates a kubernetes cluster with kubespray, and installs the O-RAN Near-RT RIC and builds xApps.  When you click the Instantiate button, you'll be presented with a list of parameters that you can change to configure your O-RAN and kubernetes deployments.  Before creating any experiments, read the Instructions, and the parameter documentation."
+#
+# General kubernetes instruction text.
+#
+kubeInstructions = \
+  """
+## Waiting for your Experiment to Complete Setup
 
-tourInstructions = \
+Once the initial phase of experiment creation completes (disk load and node configuration), the profile's setup scripts begin the complex process of installing software according to profile parameters, so you must wait to access software resources until they complete.  The Kubernetes dashboard link will not be available immediately.  There are multiple ways to determine if the scripts have finished.
+  - First, you can watch the experiment status page: the overall State will say \"booted (startup services are still running)\" to indicate that the nodes have booted up, but the setup scripts are still running.
+  - Second, the Topology View will show you, for each node, the status of the startup command on each node (the startup command kicks off the setup scripts on each node).  Once the startup command has finished on each node, the overall State field will change to \"ready\".  If any of the startup scripts fail, you can mouse over the failed node in the topology viewer for the status code.
+  - Third, the profile configuration scripts send emails: one to notify you that profile setup has started, and another notify you that setup has completed.
+  - Finally, you can view [the profile setup script logfiles](http://{host-node-0}:7999/) as the setup scripts run.  Use the `admin` username and the automatically-generated random password `{password-adminPass}` .  This URL is available very quickly after profile setup scripts begin work.
+
+## Kubernetes credentials and dashboard access
+
+Once the profile's scripts have finished configuring software in your experiment, you'll be able to visit [the Kubernetes Dashboard WWW interface](https://{host-node-0}:8080/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login) (approx. 10-15 minutes for the Kubernetes portion alone).
+
+The easiest login option is to use token authentication.  (Basic auth is configured if available, for older kubernetes versions, username `admin` password `{password-adminPass}`.  You may also supply a kubeconfig file, but we don't provide one that includes a secret by default, so you would have to generate that.)
+
+For `token` authentication: copy the token from http://{host-node-0}:7999/admin-token.txt (username `admin`, password `{password-adminPass}`) (this file is located on `node-0` in `/local/setup/admin-token.txt`).
+
+(To provide secure dashboard access, we run a `kube-proxy` instance that listens on localhost:8888 and accepts all incoming hosts, and export that via nginx proxy listening on `{host-node-0}:8080`.  We also create an `admin` `serviceaccount` in the `default` namespace, and that is the serviceaccount associated with the token auth option mentioned just above.)
+
+Kubernetes credentials are in `~/.kube/config`, or in `/root/.kube/config`, as you'd expect.
+
+## Changing your Kubernetes deployment
+
+The profile's setup scripts are automatically installed on each node in `/local/repository`, and all of the Kubernetes installation is triggered from `node-0`.  The scripts execute as your uid, and keep state and downloaded files in `/local/setup/`.  The scripts write copious logfiles in that directory; so if you think there's a problem with the configuration, you could take a quick look through these logs on the `node-0` node.  The primary logfile is `/local/setup/setup-driver.log`.
+
+Kubespray is a collection of Ansible playbooks, so you can make changes to the deployed kubernetes cluster, or even destroy and rebuild it (although you would then lose any of the post-install configuration we do in `/local/repository/setup-kubernetes-extra.sh`).  The `/local/repository/setup-kubespray.sh` script installs Ansible inside a Python 3 `virtualenv` (in `/local/setup/kubespray-virtualenv` on `node-0`).  A `virtualenv` (or `venv`) is effectively a separate part of the filesystem containing Python libraries and scripts, and a set of environment variables and paths that restrict its user to those Python libraries and scripts.  To modify your cluster's configuration in the Kubespray/Ansible way, you can run commands like these (as your uid):
+
+1. "Enter" (or access) the `virtualenv`: `. /local/setup/kubespray-virtualenv/bin/activate`
+2. Leave (or remove the environment vars from your shell session) the `virtualenv`: `deactivate`
+3. Destroy your entire kubernetes cluster: `ansible-playbook -i /local/setup/inventories/emulab/inventory.ini /local/setup/kubespray/remove-node.yml -b -v --extra-vars "node=node-0,node-1,node-2"`
+   (note that you would want to supply the short names of all nodes in your experiment)
+4. Recreate your kubernetes cluster: `ansible-playbook -i /local/setup/inventories/emulab/inventory.ini /local/setup/kubespray/cluster.yml -b -v`
+
+To change the Ansible and playbook configuration, you can start reading Kubespray documentation:
+  - https://github.com/kubernetes-sigs/kubespray/blob/master/docs/getting-started.md
+  - https://github.com/kubernetes-sigs/kubespray
+  - https://kubespray.io/
+"""
+
+#
+# Customizable area for forks.
+#
+tourDescription = \
+  "This profile creates a Kubernetes cluster and installs the O-RAN Near-RT RIC and builds xApps.  When you click the Instantiate button, you'll be presented with a list of parameters that you can change to configure your O-RAN and Kubernetes deployments.  Before creating any experiments, read the Instructions, and the parameter documentation."
+
+oranHeadInstructions = \
   """
 ## Instructions
 
-This profile can be used to deploy an O-RAN instance to connect to RAN resources (e.g. SDRs); to try O-RAN and our srsLTE/OAI RIC agents and xApp; and to develop and test the O-RAN platform and xApps.  You'll want to briefly read the Kubernetes section below to undestand how to access the Kubernetes cluster in your experiment.  Then you can read the O-RAN section further down for a guide to running demos on O-RAN.
+This profile can be used to deploy an O-RAN instance to connect to RAN resources (e.g. SDRs); to try O-RAN and our srsLTE/OAI RIC agents and xApp; and to develop and test the O-RAN platform and xApps.  You'll want to briefly read the Kubernetes section below to undestand how to access the Kubernetes cluster in your experiment.  Then you can read the O-RAN section further down for a guide to running demos on O-RAN.  This is a complex profile that installs Kubernetes, O-RAN, and xApps (some components built from source) atop a bare Ubuntu image.  This will take about 25 minutes on a `d740`, or 45 minutes on a `d430`.  You cannot immediately begin running demos; first make sure that you can access the Kubernetes dashboard and check that all RIC namespaces/pods/deployments are present and have succeeded.
 
 ## General Information
 
@@ -257,46 +308,10 @@ Software used in this profile/demo setup:
 
 (If you just want to run demos in simulated RAN mode, skip this section.  However, if you want to connect RAN resources (POWDER software-defined radios) to O-RAN for live over-the-air testing, it may be useful to create a single O-RAN experiment, and to later create one or more experiments containing RAN resources and connect them to your O-RAN experiment.  To do this, please read the documentation for the shared vlan parameters.  You'll create a shared vlan with the O-RAN experiment first, then later create RAN experiments that are told to connect to that shared vlan.  Make sure to use a random-ish shared vlan name; that secret could allow other experiments to join yours.  Finally, if you don't already have a RAN resource profile, you can start a simple NodeB/2 UE experiment to test over-the-"air" using the POWDER emulator, via this profile: https://www.powderwireless.net/p/PowderTeam/srslte-shvlan-oran .  This profile is configured specifically to connect to an O-RAN experiment, and includes instructions, so it's a good example if you are planning to connect another existing profile to an O-RAN experiment.)
 
-## Waiting for your Experiment to Complete Setup
+"""
 
-This is a complex profile that installs Kubernetes, O-RAN, and xApps (some components built from source) atop a bare Ubuntu image.  This will take about 25 minutes on a `d740`, or 45 minutes on a `d430`.  You cannot immediately begin running demos; first make sure that you can access the Kubernetes dashboard and see RIC namespaces/pods fully established.
-
-There are multiple ways to determine if the setup scripts have finished.
-  - First, you can watch the experiment status page: the overall State will say \"booted (startup services are still running)\" to indicate that the nodes have booted up, but the setup scripts are still running.
-  - Second, the Topology View will show you, for each node, the status of the startup command on each node (the startup command kicks off the setup scripts on each node).  Once the startup command has finished on each node, the overall State field will change to \"ready\".  If any of the startup scripts fail, you can mouse over the failed node in the topology viewer for the status code.
-  - Third, the profile configuration scripts also send you two emails: once to notify you that kubernetes setup has started, and a second to notify you that setup has completed.  Once you receive the second email, you can login to the dashboard and begin your work.
-  - Finally, you can view [the profile setup script logfiles](http://{host-node-0}:7999/) as the setup scripts run.  Use the `admin` username and the automatically-generated random password `{password-adminPass}` .
-
-## Kubernetes
-
-Once your experiment nodes have booted, and the profile's scripts have finished configuring Kubernetes inside your experiment, you'll be able to visit [the Kubernetes Dashboard WWW interface](https://{host-node-0}:8080/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login) .
-
-Once the dashboard is available, you can login with either basic or token authentication.  (You may also supply a kubeconfig file, but we don't provide one that includes a secret by default.)
-  - `basic`: username `admin`, password `{password-adminPass}`
-  - `token`: copy the token from http://{host-node-0}:7999/admin-token.txt (this file is located on `node-0` in `/local/setup/admin-token.txt`)
-
-(To provide secure dashboard access, we run a `kube-proxy` instance that listens on localhost:8888 and accepts all incoming hosts, and export that via nginx proxy listening on `{host-node-0}:8080`.  We also create an `admin` `serviceaccount` in the `default` namespace, and that is the serviceaccount associated with the token auth option mentioned just above.)
-
-Kubernetes credentials are in `~/.kube/config`, or in `/root/.kube/config`, as you'd expect.
-
-The profile's setup scripts are automatically installed on each node in `/local/repository`, and all of the Kubernetes installation is triggered from `node-0`.  The scripts execute as your uid, and keep state and downloaded files in `/local/setup/`.  The scripts write copious logfiles in that directory; so if you think there's a problem with the configuration, you could take a quick look through these logs on the `node-0` node.  The primary logfile is `/local/setup/setup-driver.log`.
-
-Finally, if you login to your experiment nodes before we finish configuring Kubernetes, your user id will not yet have been placed in the `docker` group.  We do this after installation so that you need not type `sudo docker ...` every time you want to run the `docker` CLI tool directly.  Therefore, if you get an error message about being unable to connect to the docker daemon, log out and reconnect to your experiment node.
-
-### Changing your Kubernetes deployment
-
-Kubespray is a collection of Ansible playbooks, so you can make changes to the deployed kubernetes cluster, or even destroy and rebuild it (although you would then lose any of the post-install configuration we do in `/local/repository/setup-kubernetes-extra.sh`).  The `/local/repository/setup-kubespray.sh` script installs Ansible inside a Python 3 `virtualenv` (in `/local/setup/kubespray-virtualenv` on `node-0`).  A `virtualenv` (or `venv`) is effectively a separate part of the filesystem containing Python libraries and scripts, and a set of environment variables and paths that restrict its user to those Python libraries and scripts.  To modify your cluster's configuration in the Kubespray/Ansible way, you can run commands like these (as your uid):
-
-1. "Enter" (or access) the `virtualenv`: `. /local/setup/kubespray-virtualenv/bin/activate`
-2. Leave (or remove the environment vars from your shell session) the `virtualenv`: `deactivate`
-3. Destroy your entire kubernetes cluster: `ansible-playbook -i /local/setup/inventories/emulab/inventory.ini /local/setup/kubespray/remove-node.yml -b -v --extra-vars "node=node-0,node-1,node-2"`
-   (note that you would want to supply the short names of all nodes in your experiment)
-4. Recreate your kubernetes cluster: `ansible-playbook -i /local/setup/inventories/emulab/inventory.ini /local/setup/kubespray/cluster.yml -b -v`
-
-To change the Ansible and playbook configuration, you can start reading Kubespray documentation:
-  - https://github.com/kubernetes-sigs/kubespray/blob/master/docs/getting-started.md
-  - https://github.com/kubernetes-sigs/kubespray
-  - https://kubespray.io/
+oranTailInstructions = \
+  """
 
 ## O-RAN
 
@@ -585,6 +600,8 @@ for ns in ricplt ricinfra ricxapp ; do kubectl get pods -n $ns ; kubectl wait po
 ```
 After the pods in each RIC namespace are ready (the commands in the `for` loop complete successfully), you can re-run the demo.  Note that you must reset all the environment variables that were initialized in previous steps because O-RAN container and service IP addresses will have changed.
 """
+
+tourInstructions = oranHeadInstructions + kubeInstructions + oranTailInstructions
 
 #
 # Setup the Tour info with the above description and instructions.

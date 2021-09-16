@@ -32,7 +32,11 @@ dataip=`getnodeip $HEAD $DATALAN`
 prefix=`getnetmaskprefix $DATALAN`
 networkip=`getnetworkip $HEAD $DATALAN`
 
-echo "$NFSEXPORTDIR $networkip/$prefix(rw,sync,no_root_squash,no_subtree_check,fsid=0)" | $SUDO tee -a /etc/exports
+syncopt="sync"
+if [ -n "$NFSASYNC" -a $NFSASYNC -eq 1 ]; then
+    syncopt="async"
+fi
+echo "$NFSEXPORTDIR $networkip/$prefix(rw,$syncopt,no_root_squash,no_subtree_check,fsid=0)" | $SUDO tee -a /etc/exports
 
 echo "OPTIONS=\"-l -h 127.0.0.1 -h $dataip\"" | $SUDO tee /etc/default/rpcbind
 $SUDO sed -i.bak -e "s/^rpcbind/#rpcbind/" /etc/hosts.deny
@@ -40,6 +44,10 @@ echo "rpcbind: ALL EXCEPT 127.0.0.1, $networkip/$prefix" | $SUDO tee -a /etc/hos
 
 service_enable rpcbind
 service_restart rpcbind
+service_enable rpc-statd
+service_restart rpc-statd
+service_enable nfs-idmapd
+service_restart nfs-idmapd
 service_enable nfs-kernel-server
 service_restart nfs-kernel-server
 
