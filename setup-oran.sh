@@ -140,5 +140,7 @@ for ns in ricplt ricinfra ricxapp ; do
     kubectl wait pod -n $ns --for=condition=Ready --all
 done
 
+$SUDO pkill chartmuseum
+
 logtend "oran"
 touch $OURDIR/setup-oran-done
