@@ -48,7 +48,7 @@ pc.defineParameter(
     longDescription="A specific link speed to use for each link/LAN.  All experiment network interfaces will request this speed.")
 pc.defineParameter(
     "ricRelease","ORAN/RIC Release",
-    portal.ParameterType.STRING,"dawn",
+    portal.ParameterType.STRING,"cherry",
     [("cherry","cherry"),("dawn","dawn")],
     longDescription="O-RAN RIC component version.  Even when you select a version, some components may be built from our own bugfix branches, and not specifically on the exact release branch.  This parameter specifies the default branch for components that we can use unmodified.")
 pc.defineParameter(
