@@ -46,6 +46,7 @@ done
 #git clone https://gerrit.o-ran-sc.org/r/ric-plt/e2
 git clone https://gitlab.flux.utah.edu/powderrenewpublic/e2
 cd e2
+git checkout ${RICRELEASE}-powder
 #git checkout 3f5c142bdef909687e4634ef5af22b4b280ecddf
 cd RIC-E2-TERMINATION
 $SUDO docker build -f Dockerfile -t ${HEAD}.cluster.local:5000/e2term:5.4.8 .
@@ -69,6 +70,9 @@ DEPBRANCH=$RICRELEASE
 if [ $RICVERSION -eq $RICCHERRY ]; then
     DEPREPO=https://gitlab.flux.utah.edu/powderrenewpublic/dep
     DEPBRANCH=cherry-powder
+elif [ $RICVERSION -eq $RICDAWN ]; then
+    DEPREPO=https://gitlab.flux.utah.edu/powderrenewpublic/dep
+    DEPBRANCH=dawn-powder
 fi
 git clone $DEPREPO -b $DEPBRANCH
 cd dep
