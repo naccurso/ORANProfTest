@@ -21,9 +21,23 @@ echo "Your ${EXPTTYPE} instance is setting up on $NFQDN ." \
 # First, we need yq.
 are_packages_installed yq
 if [ ! $? -eq 1 ]; then
-    $SUDO apt-key adv --keyserver keyserver.ubuntu.com --recv-keys CC86BB64
-    $SUDO add-apt-repository -y ppa:rmescandon/yq
-    maybe_install_packages yq
+    if [ ! "$ARCH" = "aarch64" ]; then
+	$SUDO apt-key adv --keyserver keyserver.ubuntu.com --recv-keys CC86BB64
+	$SUDO add-apt-repository -y ppa:rmescandon/yq
+	maybe_install_packages yq
+    fi
+fi
+which yq
+if [ ! $? -eq 0 ]; then
+    fname=yq_linux_amd64
+    if [ "$ARCH" = "aarch64" ]; then
+	fname=yq_linux_arm64
+    fi
+    curl -L -o /tmp/$fname.tar.gz \
+	https://github.com/mikefarah/yq/releases/download/v4.13.2/$fname.tar.gz
+    tar -xzvf /tmp/$fname.tar.gz -C /tmp
+    chmod 755 /tmp/$fname
+    $SUDO mv /tmp/$fname /usr/local/bin/yq
 fi
 
 cd $OURDIR
@@ -41,6 +55,7 @@ fi
 maybe_install_packages ${PYTHON}
 if [ $KUBESPRAYUSEVIRTUALENV -eq 1 ]; then
     if [ -e $KUBESPRAY_VIRTUALENV ]; then
+	maybe_install_packages libffi-dev
 	. $KUBESPRAY_VIRTUALENV/bin/activate
     else
 	maybe_install_packages virtualenv
@@ -57,7 +72,7 @@ if [ $KUBESPRAYUSEVIRTUALENV -eq 1 ]; then
 else
     maybe_install_packages software-properties-common ${PYTHON}-pip
     $SUDO add-apt-repository --yes --update ppa:ansible/ansible
-    maybe_install_packages ansible
+    maybe_install_packages ansible libffi-dev
     $PIP install -r kubespray/requirements.txt
 fi
 

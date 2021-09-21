@@ -13,7 +13,7 @@ LOCALSETTINGS=$OURDIR/settings.local
 TOPOMAP=$OURDIR/topomap
 BOOTDIR=/var/emulab/boot
 TMCC=/usr/local/etc/emulab/tmcc
-SWAPPER=`cat $BOOTDIR/swapper`
+SWAPPER=`geni-get user_urn | cut -f4 -d+`
 
 if [ -z "$EUID" ]; then
     EUID=`id -u`
@@ -206,7 +206,7 @@ if [ ! $? -eq 0 ]; then
 	PYTHON=python3
     else
 	are_packages_installed python3
-	success=`expr $? = 1`
+	success=`expr $? = 0`
 	# Keep trying again with updated cache forever;
 	# we must have python.
 	while [ ! $success -eq 0 ]; do
@@ -234,7 +234,7 @@ PYTHONBIN=`which $PYTHON`
 ##
 are_packages_installed ${PYTHON}-cryptography ${PYTHON}-future \
     ${PYTHON}-six ${PYTHON}-lxml ${PYTHON}-pip
-success=`expr $? = 1`
+success=`expr $? = 0`
 # Keep trying again with updated cache forever;
 # we must have this package.
 while [ ! $success -eq 0 ]; do
@@ -352,8 +352,8 @@ if [ "x${ADMIN_PASS_HASH}" = "x" ] ; then
 fi
 
 EXPTTYPE="ORAN/Kubernetes"
-CREATOR=`cat $BOOTDIR/creator`
-SWAPPER=`cat $BOOTDIR/swapper`
+CREATOR=`geni-get user_urn | cut -f4 -d+`
+SWAPPER=`geni-get user_urn | cut -f4 -d+`
 NODEID=`cat $BOOTDIR/nickname | cut -d . -f 1`
 PNODEID=`cat $BOOTDIR/nodeid`
 EEID=`cat $BOOTDIR/nickname | cut -d . -f 2`
