@@ -47,14 +47,24 @@ pc.defineParameter(
     [(0,"Any"),(1000000,"1Gb/s"),(10000000,"10Gb/s"),(25000000,"25Gb/s"),(40000000,"40Gb/s"),(100000000,"100Gb/s")],
     longDescription="A specific link speed to use for each link/LAN.  All experiment network interfaces will request this speed.")
 pc.defineParameter(
-    "ricRelease","ORAN/RIC Release",
+    "installORANSC","Install O-RAN SC RIC",
+    portal.ParameterType.BOOLEAN,True,
+    longDescription="Install the O-RAN SC RIC (https://wiki.o-ran-sc.org/pages/viewpage.action?pageId=1179659).  NB: the NexRAN xApp only works with the OSC RIC at present, so you should leave this enabled.",
+    advanced=True)
+pc.defineParameter(
+    "installONFSDRAN","Install ONF SD-RAN RIC",
+    portal.ParameterType.BOOLEAN,False,
+    longDescription="Install the ONF SD-RAN RIC (https://wiki.opennetworking.org/display/COM/SD-RAN+1.1+Release).  NB: the NexRAN xApp does not work with the SD-RAN RIC at the moment, although our srsLTE RIC agent will connect to the SD-RAN RIC.",
+    advanced=True)
+pc.defineParameter(
+    "ricRelease","O-RAN SC RIC Release",
     portal.ParameterType.STRING,"cherry",
     [("cherry","cherry"),("dawn","dawn")],
-    longDescription="O-RAN RIC component version.  Even when you select a version, some components may be built from our own bugfix branches, and not specifically on the exact release branch.  This parameter specifies the default branch for components that we can use unmodified.")
+    longDescription="O-RAN SC RIC component version.  Even when you select a version, some components may be built from our own bugfix branches, and not specifically on the exact release branch.  This parameter specifies the default branch for components that we can use unmodified.")
 pc.defineParameter(
     "buildSrsLTE","Build SrsLTE",
     portal.ParameterType.BOOLEAN,True,
-    longDescription="Build and install our version of SrsLTE with RIC support.",
+    longDescription="Build and install our version of srsLTE with RIC support.",
     advanced=True)
 pc.defineParameter(
     "buildOAI","Build OAI",
@@ -292,7 +302,7 @@ To change the Ansible and playbook configuration, you can start reading Kubespra
 # Customizable area for forks.
 #
 tourDescription = \
-  "This profile creates a Kubernetes cluster and installs the O-RAN Near-RT RIC and builds xApps.  When you click the Instantiate button, you'll be presented with a list of parameters that you can change to configure your O-RAN and Kubernetes deployments.  Before creating any experiments, read the Instructions, and the parameter documentation."
+  "This profile creates a Kubernetes cluster and installs the O-RAN SC Near-RT RIC (and optionally, the ONF SD-RAN RIC) and xApps.  When you click the Instantiate button, you'll be presented with a list of parameters that you can change to configure your O-RAN and Kubernetes deployments.  Before creating any experiments, read the Instructions, and the parameter documentation."
 
 oranHeadInstructions = \
   """
@@ -308,6 +318,7 @@ Software used in this profile/demo setup:
   * Our NexRAN RAN-slicing etc xApp: https://gitlab.flux.utah.edu/powderrenewpublic/nexran
   * Fork of scp-kpimon metrics xApp with bugfixes: https://gitlab.flux.utah.edu/powderrenewpublic/ric-scp-kpimon
   * O-RAN: https://wiki.o-ran-sc.org/display/GS/Getting+Started
+  * (optionally) SD-RAN: https://wiki.opennetworking.org/display/COM/SD-RAN+1.1+Release
 
 ## Connecting to Other Experiments with RAN Resources
 
@@ -604,6 +615,29 @@ cd /local/setup/oran/dep/bin
 for ns in ricplt ricinfra ricxapp ; do kubectl get pods -n $ns ; kubectl wait pod -n $ns --for=condition=Ready --all; done
 ```
 After the pods in each RIC namespace are ready (the commands in the `for` loop complete successfully), you can re-run the demo.  Note that you must reset all the environment variables that were initialized in previous steps because O-RAN container and service IP addresses will have changed.
+
+## SD-RAN
+
+There are basic instructions for deploying and testing SD-RAN 1.1 here:  .  We follow their deployment guide, except that we install the SD-RAN umbrella chart in the `sd-ran` Kubernetes namespace, so you will need to modify their example commands accordingly.  To connect our RIC-enabled srsLTE, you will need to run `srsenb` slightly differently than for O-RAN SC:
+
+```
+export E2TERM_SCTP=`kubectl get service -n sd-ran onos-e2t -o jsonpath='{.spec.clusterIP}'`
+sudo /local/setup/srslte-ric/build/srsenb/src/srsenb \
+    --enb.n_prb=15 --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq \
+    --rf.device_args="fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001" \
+    --ric.agent.remote_ipv4_addr=${E2TERM_SCTP} \
+    --ric.agent.local_port=59596 --ric.agent.local_ipv4_addr=192.168.128.1 \
+    --log.all_level=warn --ric.agent.log_level=debug --log.filename=stdout \
+    --slicer.enable=1 --slicer.workshare=0
+```
+
+You should see a successful E2Setup procedure in the output of `srsenb`, and you can use the SD-RAN instructions to list the e2t connections and see the srsLTE NodeB:
+
+```
+kubectl exec -it deploy/onos-cli -- /bin/bash
+source <(onos completion bash)
+onos e2t list connections
+```
 """
 
 tourInstructions = oranHeadInstructions + kubeInstructions + oranTailInstructions
