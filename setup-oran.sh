@@ -129,8 +129,14 @@ if [ $HELM_IS_V3 -eq 0 ]; then
     #
     # helm servecm will prompt us if helm is not already installed,
     # so do this manually.
-    curl -o - https://raw.githubusercontent.com/helm/chartmuseum/main/scripts/get-chartmuseum \
-	| bash
+    curl -o /tmp/get.sh https://raw.githubusercontent.com/helm/chartmuseum/main/scripts/get-chartmuseum
+    bash /tmp/get.sh
+    # This script is super fragile w.r.t. extracting version --
+    # vulnerable to github HTML format change.  Forcing a particular
+    # tag works around it.
+    if [ ! $? -eq 0 ]; then
+	bash /tmp/get.sh -v v0.13.1
+    fi
     helm plugin install https://github.com/jdolitsky/helm-servecm
     eval `helm env | grep HELM_REPOSITORY_CACHE`
     nohup helm servecm --port=8879 --context-path=/charts --storage local --storage-local-rootdir $HELM_REPOSITORY_CACHE/local/ --listen-host localhost 2>&1 >/dev/null &
