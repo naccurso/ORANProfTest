@@ -81,7 +81,12 @@ git submodule update
 
 helm init --client-only --stable-repo-url "https://charts.helm.sh/stable"
 
-cp RECIPE_EXAMPLE/PLATFORM/example_recipe.yaml $OURDIR/oran
+if [ -e ric-dep/RECIPE_EXAMPLE/example_recipe_oran_${RICRELEASE}_release.yaml ]; then
+    cp ric-dep/RECIPE_EXAMPLE/example_recipe_oran_${RICRELEASE}_release.yaml \
+       $OURDIR/oran/example_recipe.yaml
+else
+    cp RECIPE_EXAMPLE/PLATFORM/example_recipe.yaml $OURDIR/oran
+fi
 cat <<EOF >$OURDIR/oran/example_recipe.yaml-override
 e2term:
   alpha:
