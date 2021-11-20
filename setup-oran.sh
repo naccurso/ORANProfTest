@@ -118,9 +118,10 @@ if [ $RICVERSION -eq $RICCHERRY -o $RICVERSION -eq $RICDAWN ]; then
     cat <<EOF >>$OURDIR/oran/example_recipe.yaml-override
 appmgr:
   image:
-    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
-    name: ric-plt-appmgr
-    tag: 0.4.3
+    appmgr:
+      registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
+      name: ric-plt-appmgr
+      tag: 0.4.3
 EOF
 fi
 
