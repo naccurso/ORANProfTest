@@ -52,6 +52,11 @@ pc.defineParameter(
     longDescription="Install the O-RAN SC RIC (https://wiki.o-ran-sc.org/pages/viewpage.action?pageId=1179659).  NB: the NexRAN xApp only works with the OSC RIC at present, so you should leave this enabled.",
     advanced=True)
 pc.defineParameter(
+    "buildORANSC","Build O-RAN SC RIC customizations from source",
+    portal.ParameterType.BOOLEAN,False,
+    longDescription="We maintain local patches for some O-RAN components, and so have custom cached, built images for some components.  Setting this option forces rebuilds of those components.",
+    advanced=True)
+pc.defineParameter(
     "installONFSDRAN","Install ONF SD-RAN RIC",
     portal.ParameterType.BOOLEAN,False,
     longDescription="Install the ONF SD-RAN RIC (https://wiki.opennetworking.org/display/COM/SD-RAN+1.1+Release).  NB: the NexRAN xApp does not work with the SD-RAN RIC at the moment, although our srsLTE RIC agent will connect to the SD-RAN RIC.",

@@ -24,13 +24,15 @@ $SUDO chown -R $SWAPPER ~/.docker
 # The O-RAN build image repo is purged pretty regularly, so re-tag old
 # image names to point to the latest thing, to enable old builds.
 #
-CURRENTIMAGE="nexus3.o-ran-sc.org:10002/o-ran-sc/bldr-ubuntu18-c-go:1.9.0"
-OLDIMAGES="nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:1.9.0 nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:9-u18.04 nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:8-u18.04"
+if [ -n "$BUILDORANSC" -a "$BUILDORANSC" = "1" ]; then
+    CURRENTIMAGE="nexus3.o-ran-sc.org:10002/o-ran-sc/bldr-ubuntu18-c-go:1.9.0"
+    OLDIMAGES="nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:1.9.0 nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:9-u18.04 nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:8-u18.04"
 
-$SUDO docker pull $CURRENTIMAGE
-for oi in $OLDIMAGES ; do
-    $SUDO docker tag $CURRENTIMAGE $oi
-done
+    $SUDO docker pull $CURRENTIMAGE
+    for oi in $OLDIMAGES ; do
+	$SUDO docker tag $CURRENTIMAGE $oi
+    done
+fi
 
 #
 # Custom-build the O-RAN components we might need.  Bronze release is
@@ -43,15 +45,31 @@ done
 #
 # cherry is ok too, except we still need a 4G enb e2 fix.
 #
-#git clone https://gerrit.o-ran-sc.org/r/ric-plt/e2
-git clone https://gitlab.flux.utah.edu/powderrenewpublic/e2
-cd e2
-git checkout ${RICRELEASE}-powder
-#git checkout 3f5c142bdef909687e4634ef5af22b4b280ecddf
-cd RIC-E2-TERMINATION
-$SUDO docker build -f Dockerfile -t ${HEAD}.cluster.local:5000/e2term:5.4.8 .
-$SUDO docker push ${HEAD}.cluster.local:5000/e2term:5.4.8
-cd ../..
+
+E2TERM_REGISTRY=${HEAD}.cluster.local:5000
+E2TERM_NAME="e2term"
+if [ $RICVERSION -eq $RICCHERRY ]; then
+    E2TERM_TAG="5.4.8-powder"
+elif [ $RICVERSION -eq $RICDAWN ]; then
+    E2TERM_TAG="5.4.9-powder"
+fi
+if [ -n "$BUILDORANSC" -a "$BUILDORANSC" = "1" ]; then
+    if [ $RICVERSION -eq $RICCHERRY ]; then
+	E2TERM_TAG="5.4.8-powder"
+    elif [ $RICVERSION -eq $RICDAWN ]; then
+	E2TERM_TAG="5.4.9-powder"
+    fi
+    git clone https://gitlab.flux.utah.edu/powderrenewpublic/e2
+    cd e2
+    git checkout ${RICRELEASE}-powder
+    #git checkout 3f5c142bdef909687e4634ef5af22b4b280ecddf
+    cd RIC-E2-TERMINATION
+    $SUDO docker build -f Dockerfile -t ${E2TERM_REGISTRY}/${E2TERM_NAME}:${E2TERM_TAG} .
+    $SUDO docker push ${E2TERM_REGISTRY}/${E2TERM_NAME}:${E2TERM_TAG}
+    cd ../..
+else
+    $SUDO docker pull ${E2TERM_REGISTRY}/${E2TERM_TAG}:${E2TERM_TAG}
+fi
 
 if [ $RICVERSION -eq $RICBRONZE ]; then
     git clone https://gerrit.o-ran-sc.org/r/ric-plt/submgr
@@ -91,9 +109,9 @@ cat <<EOF >$OURDIR/oran/example_recipe.yaml-override
 e2term:
   alpha:
     image:
-      registry: "${HEAD}.cluster.local:5000"
-      name: e2term
-      tag: 5.4.8
+      registry: "${E2TERM_REGISTRY}"
+      name: "${E2TERM_NAME}"
+      tag: "${E2TERM_TAG}
 EOF
 if [ $RICVERSION -eq $RICBRONZE ]; then
     cat <<EOF >>$OURDIR/oran/example_recipe.yaml-override

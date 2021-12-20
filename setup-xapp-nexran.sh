@@ -28,12 +28,24 @@ curl --location --request GET "http://$KONG_PROXY:32080/onboard/api/v1/charts"
 # we handle both those things.
 #
 cd $OURDIR
-git clone https://gitlab.flux.utah.edu/powderrenewpublic/nexran.git
-cd nexran
-# Build this image and place it in our local repo, so that the onboard
-# file can use this repo, and the kubernetes ecosystem can pick it up.
-$SUDO docker build . --tag $HEAD:5000/nexran:latest
-$SUDO docker push $HEAD:5000/nexran:latest
+
+if [ -n "$BUILDORANSC" -a "$BUILDORANSC" = "1" ]; then
+    git clone https://gitlab.flux.utah.edu/powderrenewpublic/nexran.git
+    cd nexran
+    # Build this image and place it in our local repo, so that the onboard
+    # file can use this repo, and the kubernetes ecosystem can pick it up.
+    $SUDO docker build . --tag $HEAD:5000/nexran:latest
+    $SUDO docker push $HEAD:5000/nexran:latest
+    NEXRAN_REGISTRY=${HEAD}.cluster.local:5000
+    NEXRAN_NAME="nexran"
+    NEXRAN_TAG=latest
+else
+    NEXRAN_REGISTRY="gitlab.flux.utah.edu:4567"
+    NEXRAN_NAME="powder-profiles/oran/nexran"
+    NEXRAN_TAG=latest
+    $SUDO docker pull ${NEXRAN_REGISTRY}/${NEXRAN_TAG}:${NEXRAN_TAG}
+fi
+
 
 MIP=`getnodeip $HEAD $MGMTLAN`
 
@@ -46,9 +58,9 @@ cat <<EOF >$WWWPUB/nexran-config-file.json
         {
             "name": "nexran-xapp",
             "image": {
-                "registry": "${HEAD}.cluster.local:5000",
-                "name": "nexran",
-                "tag": "latest"
+                "registry": "${NEXRAN_REGISTRY}",
+                "name": "${NEXRAN_NAME}",
+                "tag": "${NEXRAN_TAG}"
             }
         }
     ],
