@@ -47,6 +47,11 @@ pc.defineParameter(
     [(0,"Any"),(1000000,"1Gb/s"),(10000000,"10Gb/s"),(25000000,"25Gb/s"),(40000000,"40Gb/s"),(100000000,"100Gb/s")],
     longDescription="A specific link speed to use for each link/LAN.  All experiment network interfaces will request this speed.")
 pc.defineParameter(
+    "ricRelease","O-RAN SC RIC Release",
+    portal.ParameterType.STRING,"dawn",
+    [("cherry","cherry"),("dawn","dawn")],
+    longDescription="O-RAN SC RIC component version.  Even when you select a version, some components may be built from our own bugfix branches, and not specifically on the exact release branch.  This parameter specifies the default branch for components that we can use unmodified.")
+pc.defineParameter(
     "installORANSC","Install O-RAN SC RIC",
     portal.ParameterType.BOOLEAN,True,
     longDescription="Install the O-RAN SC RIC (https://wiki.o-ran-sc.org/pages/viewpage.action?pageId=1179659).  NB: the NexRAN xApp only works with the OSC RIC at present, so you should leave this enabled.",
@@ -61,11 +66,6 @@ pc.defineParameter(
     portal.ParameterType.BOOLEAN,False,
     longDescription="Install the ONF SD-RAN RIC (https://wiki.opennetworking.org/display/COM/SD-RAN+1.1+Release).  NB: the NexRAN xApp does not work with the SD-RAN RIC at the moment, although our srsLTE RIC agent will connect to the SD-RAN RIC.",
     advanced=True)
-pc.defineParameter(
-    "ricRelease","O-RAN SC RIC Release",
-    portal.ParameterType.STRING,"dawn",
-    [("cherry","cherry"),("dawn","dawn")],
-    longDescription="O-RAN SC RIC component version.  Even when you select a version, some components may be built from our own bugfix branches, and not specifically on the exact release branch.  This parameter specifies the default branch for components that we can use unmodified.")
 pc.defineParameter(
     "buildSrsLTE","Build SrsLTE",
     portal.ParameterType.BOOLEAN,True,
