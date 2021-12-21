@@ -107,7 +107,7 @@ e2term:
     image:
       registry: "${E2TERM_REGISTRY}"
       name: "${E2TERM_NAME}"
-      tag: "${E2TERM_TAG}
+      tag: "${E2TERM_TAG}"
 EOF
 if [ $RICVERSION -eq $RICBRONZE ]; then
     cat <<EOF >>$OURDIR/oran/example_recipe.yaml-override
