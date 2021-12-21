@@ -44,7 +44,7 @@ else
     KPIMON_REGISTRY="gitlab.flux.utah.edu:4567"
     KPIMON_NAME="powder-profiles/oran/scp-kpimon"
     KPIMON_TAG=powder
-    $SUDO docker pull ${KPIMON_REGISTRY}/${KPIMON_TAG}:${KPIMON_TAG}
+    $SUDO docker pull ${KPIMON_REGISTRY}/${KPIMON_NAME}:${KPIMON_TAG}
 fi
 
 MIP=`getnodeip $HEAD $MGMTLAN`

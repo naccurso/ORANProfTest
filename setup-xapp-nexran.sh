@@ -43,7 +43,7 @@ else
     NEXRAN_REGISTRY="gitlab.flux.utah.edu:4567"
     NEXRAN_NAME="powder-profiles/oran/nexran"
     NEXRAN_TAG=latest
-    $SUDO docker pull ${NEXRAN_REGISTRY}/${NEXRAN_TAG}:${NEXRAN_TAG}
+    $SUDO docker pull ${NEXRAN_REGISTRY}/${NEXRAN_NAME}:${NEXRAN_TAG}
 fi
 
 

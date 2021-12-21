@@ -54,11 +54,6 @@ elif [ $RICVERSION -eq $RICDAWN ]; then
     E2TERM_TAG="5.4.9-powder"
 fi
 if [ -n "$BUILDORANSC" -a "$BUILDORANSC" = "1" ]; then
-    if [ $RICVERSION -eq $RICCHERRY ]; then
-	E2TERM_TAG="5.4.8-powder"
-    elif [ $RICVERSION -eq $RICDAWN ]; then
-	E2TERM_TAG="5.4.9-powder"
-    fi
     git clone https://gitlab.flux.utah.edu/powderrenewpublic/e2
     cd e2
     git checkout ${RICRELEASE}-powder
@@ -68,7 +63,8 @@ if [ -n "$BUILDORANSC" -a "$BUILDORANSC" = "1" ]; then
     $SUDO docker push ${E2TERM_REGISTRY}/${E2TERM_NAME}:${E2TERM_TAG}
     cd ../..
 else
-    $SUDO docker pull ${E2TERM_REGISTRY}/${E2TERM_TAG}:${E2TERM_TAG}
+    E2TERM_REGISTRY="gitlab.flux.utah.edu:4567"
+    $SUDO docker pull ${E2TERM_REGISTRY}/${E2TERM_NAME}:${E2TERM_TAG}
 fi
 
 if [ $RICVERSION -eq $RICBRONZE ]; then
