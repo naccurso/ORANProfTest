@@ -28,13 +28,24 @@ curl --location --request GET "http://$KONG_PROXY:32080/onboard/api/v1/charts"
 # we handle both those things.
 #
 cd $OURDIR
-git clone https://gitlab.flux.utah.edu/powderrenewpublic/ric-scp-kpimon.git
-cd ric-scp-kpimon
-git checkout revert-to-e2sm-kpm-01.00
-# Build this image and place it in our local repo, so that the onboard
-# file can use this repo, and the kubernetes ecosystem can pick it up.
-$SUDO docker build . --tag $HEAD:5000/scp-kpimon:latest
-$SUDO docker push $HEAD:5000/scp-kpimon:latest
+
+if [ -n "$BUILDORANSC" -a "$BUILDORANSC" = "1" ]; then
+    git clone https://gitlab.flux.utah.edu/powderrenewpublic/ric-scp-kpimon.git
+    cd ric-scp-kpimon
+    git checkout revert-to-e2sm-kpm-01.00
+    # Build this image and place it in our local repo, so that the onboard
+    # file can use this repo, and the kubernetes ecosystem can pick it up.
+    $SUDO docker build . --tag $HEAD:5000/scp-kpimon:powder
+    $SUDO docker push $HEAD:5000/scp-kpimon:powder
+    KPIMON_REGISTRY=${HEAD}.cluster.local:5000
+    KPIMON_NAME="scp-kpimon"
+    KPIMON_TAG=powder
+else
+    KPIMON_REGISTRY="gitlab.flux.utah.edu:4567"
+    KPIMON_NAME="powder-profiles/oran/scp-kpimon"
+    KPIMON_TAG=powder
+    $SUDO docker pull ${KPIMON_REGISTRY}/${KPIMON_NAME}:${KPIMON_TAG}
+fi
 
 MIP=`getnodeip $HEAD $MGMTLAN`
 
@@ -47,9 +58,9 @@ cat <<EOF >$WWWPUB/scp-kpimon-config-file.json
         {
             "name": "scp-kpimon-xapp",
             "image": {
-                "registry": "${HEAD}.cluster.local:5000",
-                "name": "scp-kpimon",
-                "tag": "latest"
+                "registry": "${KPIMON_REGISTRY}",
+                "name": "${KPIMON_NAME}",
+                "tag": "${KPIMON_TAG}"
             }
         }
     ],
