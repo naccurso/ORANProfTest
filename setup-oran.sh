@@ -47,13 +47,13 @@ fi
 #
 
 E2TERM_REGISTRY=${HEAD}.cluster.local:5000
-E2TERM_NAME="e2term"
 if [ $RICVERSION -eq $RICCHERRY ]; then
     E2TERM_TAG="5.4.8-powder"
 elif [ $RICVERSION -eq $RICDAWN ]; then
     E2TERM_TAG="5.4.9-powder"
 fi
 if [ -n "$BUILDORANSC" -a "$BUILDORANSC" = "1" ]; then
+    E2TERM_NAME="e2term"
     git clone https://gitlab.flux.utah.edu/powderrenewpublic/e2
     cd e2
     git checkout ${RICRELEASE}-powder
@@ -64,6 +64,7 @@ if [ -n "$BUILDORANSC" -a "$BUILDORANSC" = "1" ]; then
     cd ../..
 else
     E2TERM_REGISTRY="gitlab.flux.utah.edu:4567"
+    E2TERM_NAME="powder-profiles/oran/e2term"
     $SUDO docker pull ${E2TERM_REGISTRY}/${E2TERM_NAME}:${E2TERM_TAG}
 fi
 
