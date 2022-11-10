@@ -430,32 +430,56 @@ Note that the IMSI and key correspond to values for `ue1` in `/etc/srslte/user_d
 
 1.  In a new ssh connection to `node-0`, onboard and deploy the `nexran` xApp:
     - Onboard the `nexran` xApp:
-    ```
-    export KONG_PROXY=`kubectl get svc -n ricplt -l app.kubernetes.io/name=kong -o jsonpath='{.items[0].spec.clusterIP}'`
-    curl -L -X POST \
-        "http://${KONG_PROXY}:32080/onboard/api/v1/onboard/download" \
-        --header 'Content-Type: application/json' \
-        --data-binary "@/local/profile-public/nexran-onboard.url"
-    ```
-    (Note that the profile created `/local/profile-public/nexran-onboard.url`, a JSON file that points the onboarder to the xApp config file, and started an nginx endpoint to serve content (the xApp config file) on `node-0:7998`.  The referenced config file is in `/local/profile-public/nexran-config-file.json`.)
+
+        (`dawn` and lower)
+        ```
+        export KONG_PROXY=`kubectl get svc -n ricplt -l app.kubernetes.io/name=kong -o jsonpath='{.items[0].spec.clusterIP}'`
+        curl -L -X POST \
+            "http://${KONG_PROXY}:32080/onboard/api/v1/onboard/download" \
+            --header 'Content-Type: application/json' \
+            --data-binary "@/local/profile-public/nexran-onboard.url"
+        ```
+        (`e-release` and above)
+        ```
+        /local/setup/oran/dms_cli onboard \
+            /local/profile-public/nexran-config-file.json \
+            /local/setup/oran/xapp-embedded-schema.json
+        ```
+        (Note that the profile created the referenced config file in `/local/profile-public/nexran-config-file.json`.  For pre-`e-release` deployments, it also creates `/local/profile-public/nexran-onboard.url`, a JSON file that points the onboarder service to the xApp config file, and started an nginx endpoint to serve content (the xApp config file) on `node-0:7998`.  In post-`d-release` deployments, the onboarder URL file is unnecessary, as shown above with `dms_cli`.)
     - Verify that the app was successfully created:
-    ```
-    curl -L -X GET \
-        "http://${KONG_PROXY}:32080/onboard/api/v1/charts"
-    ```
-    (You should see a single JSON blob that refers to a Helm chart.)
+
+        (`dawn` and lower)
+        ```
+        curl -L -X GET \
+            "http://${KONG_PROXY}:32080/onboard/api/v1/charts"
+        ```
+        (You should see a single JSON blob that refers to a Helm chart.)
+
+        (`e-release` and above)
+        ```
+        /local/setup/oran/dms_cli get_charts_list
+        ```
     - Deploy the `nexran` xApp:
-    ```
-    curl -L -X POST \
-        "http://${KONG_PROXY}:32080/appmgr/ric/v1/xapps" \
-        --header 'Content-Type: application/json' \
-        --data-raw '{"xappName": "nexran"}'
-    ```
+
+        (`dawn` and lower)
+        ```
+        curl -L -X POST \
+            "http://${KONG_PROXY}:32080/appmgr/ric/v1/xapps" \
+            --header 'Content-Type: application/json' \
+            --data-raw '{"xappName": "nexran"}'
+        ```
+
+        (`e-release` and above)
+        ```
+        /local/setup/oran/dms_cli install \
+            --xapp_chart_name=nexran --version=0.1.0 --namespace=ricxapp
+        ```
     - View the logs of the `nexran` xApp:
-    ```
-    kubectl logs -f -n ricxapp -l app=ricxapp-nexran
-    ```
-    (This shows the output of the `nexran` xApp, including debug messages as slicing commands are sent to the xApp, which passes them down to the targeted NodeB.)
+
+        ```
+        kubectl logs -f -n ricxapp -l app=ricxapp-nexran
+        ```
+        (This shows the output of the `nexran` xApp, including debug messages as slicing commands are sent to the xApp, which passes them down to the targeted NodeB.)
 
 2.  In a new ssh connection to `node-0`, collect the IP address of the `nexran` northbound RESTful interface (so that you can send API invocations via `curl`).  This is the terminal you will use to run the demo driver script.
 ```
