@@ -222,7 +222,7 @@ if [ ! -e $OURDIR/venv/dms/bin/activate ]; then
 #!/bin/sh
 
 if [ -z "\$CHART_REPO_URL" ]; then
-    CHART_REPO_URL=http://$myip:8878/charts
+    export CHART_REPO_URL=http://$myip:8878/charts
 fi
 
 . $OURDIR/venv/dms/bin/activate && dms_cli "\$@"
