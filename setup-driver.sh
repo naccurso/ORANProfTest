@@ -9,7 +9,10 @@ cd $SRC
 ALLNODESCRIPTS="setup-ssh.sh setup-disk-space.sh"
 HEADNODESCRIPTS="setup-nfs-server.sh setup-nginx.sh setup-ssl.sh setup-kubespray.sh setup-kubernetes-extra.sh"
 if [ $INSTALLORANSC -eq 1 ]; then
-    HEADNODESCRIPTS="${HEADNODESCRIPTS} setup-oran.sh setup-xapp-kpimon.sh setup-xapp-nexran.sh"
+    HEADNODESCRIPTS="${HEADNODESCRIPTS} setup-oran.sh setup-xapp-kpimon.sh setup-xapp-nexran.sh setup-xapp-kpimon-go.sh"
+fi
+if [ $INSTALLORANSCSMO -eq 1 ]; then
+    HEADNODESCRIPTS="${HEADNODESCRIPTS} setup-oran-smo.sh"
 fi
 if [ $INSTALLONFSDRAN -eq 1 ]; then
     HEADNODESCRIPTS="${HEADNODESCRIPTS} setup-sdran.sh"

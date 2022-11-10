@@ -127,6 +127,8 @@ RICVERSION=$RICCHERRY
 RICRELEASE=cherry
 INSTALLORANSC=1
 INSTALLONFSDRAN=0
+INSTALLORANSCSMO=0
+INSTALLORANSCSMOSIM=0
 
 #
 # We have an 'admin' user that gets a random password that comes in from

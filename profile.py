@@ -62,6 +62,16 @@ pc.defineParameter(
     longDescription="We maintain local patches for some O-RAN components, and so have custom cached, built images for some components.  Setting this option forces rebuilds of those components.",
     advanced=True)
 pc.defineParameter(
+    "installORANSCSMO","Install O-RAN SC SMO",
+    portal.ParameterType.BOOLEAN,False,
+    longDescription="Install the O-RAN SC SMO.",
+    advanced=True)
+pc.defineParameter(
+    "installORANSCSMOSim","Install O-RAN SC SMO Simulators",
+    portal.ParameterType.BOOLEAN,False,
+    longDescription="Install the O-RAN SC SMO Simulators.",
+    advanced=True)
+pc.defineParameter(
     "installONFSDRAN","Install ONF SD-RAN RIC",
     portal.ParameterType.BOOLEAN,False,
     longDescription="Install the ONF SD-RAN RIC (https://wiki.opennetworking.org/display/COM/SD-RAN+1.1+Release).  NB: the NexRAN xApp does not work with the SD-RAN RIC at the moment, although our srsLTE RIC agent will connect to the SD-RAN RIC.",
