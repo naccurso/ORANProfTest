@@ -51,6 +51,10 @@ if [ $RICVERSION -eq $RICCHERRY ]; then
     E2TERM_TAG="5.4.8-powder"
 elif [ $RICVERSION -eq $RICDAWN ]; then
     E2TERM_TAG="5.4.9-powder"
+elif [ $RICVERSION -eq $RICERELEASE ]; then
+    E2TERM_TAG="5.5.0-powder"
+elif [ $RICVERSION -eq $RICFRELEASE ]; then
+    E2TERM_TAG="6.0.0-powder"
 fi
 if [ -n "$BUILDORANSC" -a "$BUILDORANSC" = "1" ]; then
     E2TERM_NAME="e2term"
@@ -96,8 +100,8 @@ git submodule update
 
 helm init --client-only --stable-repo-url "https://charts.helm.sh/stable"
 
-if [ -e ric-dep/RECIPE_EXAMPLE/example_recipe_oran_${RICRELEASE}_release.yaml ]; then
-    cp ric-dep/RECIPE_EXAMPLE/example_recipe_oran_${RICRELEASE}_release.yaml \
+if [ -e ric-dep/RECIPE_EXAMPLE/example_recipe_oran_${RICSHORTRELEASE}_release.yaml ]; then
+    cp ric-dep/RECIPE_EXAMPLE/example_recipe_oran_${RICSHORTRELEASE}_release.yaml \
        $OURDIR/oran/example_recipe.yaml
 else
     cp RECIPE_EXAMPLE/PLATFORM/example_recipe.yaml $OURDIR/oran
@@ -182,6 +186,54 @@ for ns in ricplt ricinfra ricxapp ; do
 done
 
 $SUDO pkill chartmuseum
+
+#
+# Set up a local chartmuseum server for post-onboarder service dms_cli cases
+# (post-dawn releases).
+#
+myip=`getnodeip $HEAD $MGMTLAN`
+docker inspect chartmuseum-oran
+if [ ! $? -eq 0 ]; then
+    $SUDO docker pull bitnami/chartmuseum
+    $SUDO docker run -d \
+        --name chartmuseum-oran \
+	-p 127.0.0.1:8878:8080 -p $myip:8878:8080 \
+	-e CONTEXT_PATH=charts \
+	bitnami/chartmuseum
+fi
+
+#
+# Install dms_cli.
+#
+cd $OURDIR/oran
+if [ ! -e appmgr ]; then
+    git clone https://gerrit.o-ran-sc.org/r/ric-plt/appmgr
+fi
+if [ ! -e $OURDIR/venv/dms/bin/activate ]; then
+    mkdir -p $OURDIR/venv
+    cd $OURDIR/venv
+    virtualenv --python /usr/bin/python3 dms
+    . $OURDIR/venv/dms/bin/activate \
+	&& cd $OURDIR/appmgr/xapp_orchestrater/dev/xapp_onboarder \
+	&& pip3 install . \
+	&& deactivate
+    if [ ! -e $OURDIR/oran/dms_cli ]; then
+	cat <<EOF >$OURDIR/oran/dms_cli
+#!/bin/sh
+
+if [ -z "\$CHART_REPO_URL" ]; then
+    export CHART_REPO_URL=http://$myip:8878/charts
+fi
+
+. $OURDIR/venv/dms/bin/activate && dms_cli "\$@"
+EOF
+	chmod 755 $OURDIR/oran/dms_cli
+    fi
+    if [ ! -e $OURDIR/oran/xapp-embedded-schema.json ]; then
+	cp -p $OURDIR/oran/appmgr/xapp_orchestrater/dev/docs/xapp_onboarder/guide/embedded-schema.json \
+	    $OURDIR/oran/xapp-embedded-schema.json
+    fi
+fi
 
 logtend "oran"
 touch $OURDIR/setup-oran-done
