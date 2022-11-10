@@ -16,7 +16,7 @@ logtstart "asn1c"
 cd $OURDIR
 rm -rf $OURDIR/asn1c
 # GIT_SSL_NO_VERIFY=true
-git clone https://gitlab.eurecom.fr/oai/asn1c.git
+git clone https://gitlab.flux.utah.edu/powderrenewpublic/asn1c-eurecom asn1c #https://gitlab.eurecom.fr/oai/asn1c.git
 cd asn1c
 # better to use a given commit than a branch in case the branch
 # is updated and requires modifications in the source of OAI

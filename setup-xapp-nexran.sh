@@ -13,11 +13,7 @@ logtstart "xapp-nexran"
 
 # kubectl get pods -n ricplt  -l app=ricplt-e2term -o jsonpath='{..status.podIP}'
 KONG_PROXY=`kubectl get svc -n ricplt -l app.kubernetes.io/name=kong -o jsonpath='{.items[0].spec.clusterIP}'`
-E2MGR_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-e2mgr-http -o jsonpath='{.items[0].spec.clusterIP}'`
 APPMGR_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-appmgr-http -o jsonpath='{.items[0].spec.clusterIP}'`
-E2TERM_SCTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-e2term-sctp-alpha -o jsonpath='{.items[0].spec.clusterIP}'`
-ONBOARDER_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-xapp-onboarder-http -o jsonpath='{.items[0].spec.clusterIP}'`
-RTMGR_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-rtmgr-http -o jsonpath='{.items[0].spec.clusterIP}'`
 
 curl --location --request GET "http://$KONG_PROXY:32080/onboard/api/v1/charts"
 
@@ -104,18 +100,26 @@ cat <<EOF >$WWWPUB/nexran-onboard.url
 EOF
 
 if [ -n "$DONEXRANDEPLOY" -a $DONEXRANDEPLOY -eq 1 ]; then
-    curl -L -X POST \
-        "http://$KONG_PROXY:32080/onboard/api/v1/onboard/download" \
-        --header 'Content-Type: application/json' \
-	--data-binary "@${WWWPUB}/nexran-onboard.url"
+    if [ $RICVERSION -gt $RICDAWN ]; then
+	$OURDIR/dms_cli onboard \
+	    --config_file_path=$WWWPUB/nexran-config-file.json \
+	    --shcema_file_path=$OURDIR/appmgr/xapp_orchestrater/dev/docs/xapp_onboarder/guide/embedded-schema.json
+	$OURDIR/dms_cli install \
+	    --xapp_chart_name=nexran --version=0.1.0 --namespace=ricxapp
+    else
+        curl -L -X POST \
+            "http://$KONG_PROXY:32080/onboard/api/v1/onboard/download" \
+            --header 'Content-Type: application/json' \
+  	    --data-binary "@${WWWPUB}/nexran-onboard.url"
 
-    curl -L -X GET \
-        "http://$KONG_PROXY:32080/onboard/api/v1/charts"
+	curl -L -X GET \
+            "http://$KONG_PROXY:32080/onboard/api/v1/charts"
 
-    curl -L -X POST \
-	"http://$KONG_PROXY:32080/appmgr/ric/v1/xapps" \
-	--header 'Content-Type: application/json' \
-	--data-raw '{"xappName": "nexran"}'
+	curl -L -X POST \
+	    "http://$KONG_PROXY:32080/appmgr/ric/v1/xapps" \
+	    --header 'Content-Type: application/json' \
+	    --data-raw '{"xappName": "nexran"}'
+    fi
 fi
 
 logtend "xapp-nexran"

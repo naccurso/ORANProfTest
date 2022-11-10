@@ -51,6 +51,10 @@ if [ $RICVERSION -eq $RICCHERRY ]; then
     E2TERM_TAG="5.4.8-powder"
 elif [ $RICVERSION -eq $RICDAWN ]; then
     E2TERM_TAG="5.4.9-powder"
+elif [ $RICVERSION -eq $RICERELEASE ]; then
+    E2TERM_TAG="5.5.0-powder"
+elif [ $RICVERSION -eq $RICFRELEASE ]; then
+    E2TERM_TAG="6.0.0-powder"
 fi
 if [ -n "$BUILDORANSC" -a "$BUILDORANSC" = "1" ]; then
     E2TERM_NAME="e2term"
@@ -96,8 +100,8 @@ git submodule update
 
 helm init --client-only --stable-repo-url "https://charts.helm.sh/stable"
 
-if [ -e ric-dep/RECIPE_EXAMPLE/example_recipe_oran_${RICRELEASE}_release.yaml ]; then
-    cp ric-dep/RECIPE_EXAMPLE/example_recipe_oran_${RICRELEASE}_release.yaml \
+if [ -e ric-dep/RECIPE_EXAMPLE/example_recipe_oran_${RICSHORTRELEASE}_release.yaml ]; then
+    cp ric-dep/RECIPE_EXAMPLE/example_recipe_oran_${RICSHORTRELEASE}_release.yaml \
        $OURDIR/oran/example_recipe.yaml
 else
     cp RECIPE_EXAMPLE/PLATFORM/example_recipe.yaml $OURDIR/oran
@@ -181,7 +185,40 @@ for ns in ricplt ricinfra ricxapp ; do
     kubectl wait pod -n $ns --for=condition=Ready --all
 done
 
-$SUDO pkill chartmuseum
+#
+# We continue to assume this exists, for dms_cli.
+#
+#$SUDO pkill chartmuseum
+
+#
+# Install dms_cli.
+#
+cd $OURDIR
+if [ ! -e appmgr ]; then
+    git clone https://gerrit.o-ran-sc.org/r/ric-plt/appmgr
+fi
+if [ ! -e $OURDIR/venv/dms/bin/activate ]; then
+    mkdir -p $OURDIR/venv
+    cd $OURDIR/venv
+    virtualenv --python /usr/bin/python3 dms
+    . $OURDIR/venv/dms/bin/activate \
+	&& cd $OURDIR/appmgr/xapp_orchestrater/dev/xapp_onboarder \
+	&& pip3 install . \
+	&& deactivate
+    if [ ! -e $OURDIR/dms_cli ]; then
+	myip=`getnodeip $HEAD $MGMTLAN`
+	cat <<EOF >$OURDIR/dms_cli
+#!/bin/sh
+
+if [ -z "\$CHART_REPO_URL" ]; then
+    CHART_REPO_URL=http://$myip:8879/charts
+fi
+
+. $OURDIR/venv/dms/bin/activate && dms_cli "$@"
+EOF
+	chmod 755 $OURDIR/dms_cli
+    fi
+fi
 
 logtend "oran"
 touch $OURDIR/setup-oran-done
