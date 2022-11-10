@@ -102,10 +102,10 @@ EOF
 
 if [ -n "$DOKPIMONGODEPLOY" -a $DOKPIMONGODEPLOY -eq 1 ]; then
     if [ $RICVERSION -gt $RICDAWN ]; then
-	$OURDIR/dms_cli onboard \
+	$OURDIR/oran/dms_cli onboard \
 	    --config_file_path=$WWWPUB/kpimon-go-config-file.json \
 	    --shcema_file_path=$OURDIR/appmgr/xapp_orchestrater/dev/docs/xapp_onboarder/guide/embedded-schema.json
-	$OURDIR/dms_cli install \
+	$OURDIR/oran/dms_cli install \
 	    --xapp_chart_name=kpimon-go --version=1.0.0 --namespace=ricxapp
     else
 	curl -L -X POST \

@@ -205,7 +205,7 @@ fi
 #
 # Install dms_cli.
 #
-cd $OURDIR
+cd $OURDIR/oran
 if [ ! -e appmgr ]; then
     git clone https://gerrit.o-ran-sc.org/r/ric-plt/appmgr
 fi
@@ -217,8 +217,8 @@ if [ ! -e $OURDIR/venv/dms/bin/activate ]; then
 	&& cd $OURDIR/appmgr/xapp_orchestrater/dev/xapp_onboarder \
 	&& pip3 install . \
 	&& deactivate
-    if [ ! -e $OURDIR/dms_cli ]; then
-	cat <<EOF >$OURDIR/dms_cli
+    if [ ! -e $OURDIR/oran/dms_cli ]; then
+	cat <<EOF >$OURDIR/oran/dms_cli
 #!/bin/sh
 
 if [ -z "\$CHART_REPO_URL" ]; then
@@ -227,7 +227,11 @@ fi
 
 . $OURDIR/venv/dms/bin/activate && dms_cli "\$@"
 EOF
-	chmod 755 $OURDIR/dms_cli
+	chmod 755 $OURDIR/oran/dms_cli
+    fi
+    if [ ! -e $OURDIR/oran/xapp-embedded-schema.json ]; then
+	cp -p $OURDIR/oran/appmgr/xapp_orchestrater/dev/docs/xapp_onboarder/guide/embedded-schema.json \
+	    $OURDIR/oran/xapp-embedded-schema.json
     fi
 fi
 

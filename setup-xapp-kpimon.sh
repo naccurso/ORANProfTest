@@ -97,10 +97,10 @@ EOF
 
 if [ -n "$DOKPIMONDEPLOY" -a $DOKPIMONDEPLOY -eq 1 ]; then
     if [ $RICVERSION -gt $RICDAWN ]; then
-	$OURDIR/dms_cli onboard \
+	$OURDIR/oran/dms_cli onboard \
 	    --config_file_path=$WWWPUB/scp-kpimon-config-file.json \
 	    --shcema_file_path=$OURDIR/appmgr/xapp_orchestrater/dev/docs/xapp_onboarder/guide/embedded-schema.json
-	$OURDIR/dms_cli install \
+	$OURDIR/oran/dms_cli install \
 	    --xapp_chart_name=scp-kpimon --version=1.0.1 --namespace=ricxapp
     else
 	curl -L -X POST \
