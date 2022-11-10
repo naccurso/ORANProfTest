@@ -185,10 +185,22 @@ for ns in ricplt ricinfra ricxapp ; do
     kubectl wait pod -n $ns --for=condition=Ready --all
 done
 
+$SUDO pkill chartmuseum
+
 #
-# We continue to assume this exists, for dms_cli.
+# Set up a local chartmuseum server for post-onboarder service dms_cli cases
+# (post-dawn releases).
 #
-#$SUDO pkill chartmuseum
+myip=`getnodeip $HEAD $MGMTLAN`
+docker inspect chartmuseum-oran
+if [ ! $? -eq 0 ]; then
+    $SUDO docker pull bitnami/chartmuseum
+    $SUDO docker run -d \
+        --name chartmuseum-oran \
+	-p 127.0.0.1:8878:8080 -p $myip:8878:8080 \
+	-e CONTEXT_PATH=charts \
+	bitnami/chartmuseum
+fi
 
 #
 # Install dms_cli.
@@ -206,15 +218,14 @@ if [ ! -e $OURDIR/venv/dms/bin/activate ]; then
 	&& pip3 install . \
 	&& deactivate
     if [ ! -e $OURDIR/dms_cli ]; then
-	myip=`getnodeip $HEAD $MGMTLAN`
 	cat <<EOF >$OURDIR/dms_cli
 #!/bin/sh
 
 if [ -z "\$CHART_REPO_URL" ]; then
-    CHART_REPO_URL=http://$myip:8879/charts
+    CHART_REPO_URL=http://$myip:8878/charts
 fi
 
-. $OURDIR/venv/dms/bin/activate && dms_cli "$@"
+. $OURDIR/venv/dms/bin/activate && dms_cli "\$@"
 EOF
 	chmod 755 $OURDIR/dms_cli
     fi
