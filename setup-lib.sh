@@ -231,24 +231,40 @@ $PYTHON --version | grep -q "Python 3"
 if [ $? -eq 0 ]; then
     PYVERS=3
     PIP=pip3
+    PYTHONPKGPREFIX=python3
 else
     PYVERS=2
     PIP=pip
+    PYTHONPKGPREFIX=python
 fi
 PYTHONBIN=`which $PYTHON`
+# Some kubesprays uninstall python-is-python3 and replace with
+# python-is-python2; we cannot have that.
+if [ ! -e $OURDIR/python-is-what ]; then
+    are_packages_installed python-is-python3
+    if [ $? -eq 1 ]; then
+	echo python-is-python3 > $OURDIR/python-is-what
+    else
+	are_packages_installed python-is-python2
+	if [ $? -eq 1 ]; then
+	    echo python-is-python2 > $OURDIR/python-is-what
+	fi
+    fi
+    touch $OURDIR/python-is-what
+fi
 
 ##
 ## Grab our geni creds, and create a GENI credential cert
 ##
-are_packages_installed ${PYTHON}-cryptography ${PYTHON}-future \
-    ${PYTHON}-six ${PYTHON}-lxml ${PYTHON}-pip
+are_packages_installed ${PYTHONPKGPREFIX}-cryptography ${PYTHONPKGPREFIX}-future \
+    ${PYTHONPKGPREFIX}-six ${PYTHONPKGPREFIX}-lxml ${PYTHONPKGPREFIX}-pip
 success=`expr $? = 0`
 # Keep trying again with updated cache forever;
 # we must have this package.
 while [ ! $success -eq 0 ]; do
     do_apt_update
-    $SUDO apt-get $DPKGOPTS install $APTGETINSTALLOPTS ${PYTHON}-cryptography \
-	${PYTHON}-future ${PYTHON}-six ${PYTHON}-lxml ${PYTHON}-pip
+    $SUDO apt-get $DPKGOPTS install $APTGETINSTALLOPTS ${PYTHONPKGPREFIX}-cryptography \
+	${PYTHONPKGPREFIX}-future ${PYTHONPKGPREFIX}-six ${PYTHONPKGPREFIX}-lxml ${PYTHONPKGPREFIX}-pip
     success=$?
 done
 

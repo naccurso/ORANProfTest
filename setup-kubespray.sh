@@ -70,7 +70,7 @@ if [ $KUBESPRAYUSEVIRTUALENV -eq 1 ]; then
 	$PIP install ansible==2.9
     fi
 else
-    maybe_install_packages software-properties-common ${PYTHON}-pip
+    maybe_install_packages software-properties-common ${PYTHONPKGPREFIX}-pip
     $SUDO add-apt-repository --yes --update ppa:ansible/ansible
     maybe_install_packages ansible libffi-dev
     $PIP install -r kubespray/requirements.txt
@@ -376,6 +376,11 @@ if [ ! $? -eq 0 ]; then
     exit 1
 fi
 cd ..
+
+# kubespray sometimes installs python-is-python2; we can't allow that.
+if [ -s $OURDIR/python-is-what ]; then
+    maybe_install_packages `cat $OURDIR/python-is-what`
+fi
 
 $SUDO rm -rf /root/.kube
 $SUDO mkdir -p /root/.kube

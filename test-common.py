@@ -35,7 +35,10 @@ try:
     import httplib
 except:
     from urllib.parse import urlsplit, urlunsplit
-    from urllib.request import splitport
+    try:
+        from urllib.request import splitport
+    except:
+        from urllib.parse import splitport
     import xmlrpc.client as xmlrpclib
     import http.client as httplib
 import os
@@ -351,6 +354,10 @@ def do_method(module, method, params, URI=None, quiet=False, version=None,
         port = url.port if url.port else 443
 
         ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+        try:
+            ctx.set_ciphers("DEFAULT:@SECLEVEL=0")
+        except:
+            pass
         if authenticate:
             ctx.load_cert_chain(CERTIFICATE,password=passphrase)
         if not verify:
