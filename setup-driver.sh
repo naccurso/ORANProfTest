@@ -2,6 +2,9 @@
 
 set -x
 
+# Preserve legacy main logfile location
+ln -s /local/logs/setup.log /local/setup/setup-driver.log
+
 export SRC=`dirname $0`
 cd $SRC
 . $SRC/setup-lib.sh
@@ -28,17 +31,17 @@ if [ -f $OURDIR/setup-driver-done ]; then
 fi
 for script in $ALLNODESCRIPTS ; do
     cd $SRC
-    $SRC/$script | tee - $OURDIR/${script}.log 2>&1
+    $SRC/$script | tee - /local/logs/${script}.log 2>&1
 done
 if [ "$HOSTNAME" = "node-0" ]; then
     for script in $HEADNODESCRIPTS ; do
 	cd $SRC
-	$SRC/$script | tee - $OURDIR/${script}.log 2>&1
+	$SRC/$script | tee - /local/logs/${script}.log 2>&1
     done
 else
     for script in $WORKERNODESCRIPTS ; do
 	cd $SRC
-	$SRC/$script | tee - $OURDIR/${script}.log 2>&1
+	$SRC/$script | tee - /local/logs/${script}.log 2>&1
     done
 fi
 
