@@ -50,6 +50,9 @@ helm install -n kube-system raft-storage-controller atomix/atomix-raft-storage -
 helm install -n kube-system onos-operator onos/onos-operator --version $SDRAN_ONOS_OPERATOR_VERSION --wait
 
 kubectl create namespace sd-ran
+
+helm install -n sd-ran kube-prometheus-stack prometheus-community/kube-prometheus-stack --wait
+
 cat <<EOF >$OURDIR/sdran-values.yaml
 import:
   onos-kpimon:
