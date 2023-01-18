@@ -18,6 +18,7 @@ helm repo add cord https://charts.opencord.org
 helm repo add atomix https://charts.atomix.io
 helm repo add onos https://charts.onosproject.org
 helm repo add sdran https://sdrancharts.onosproject.org
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 if [ $ONFRICPOWDER -eq 1 ]; then
     helm repo add sdran-powder https://gitlab.flux.utah.edu/api/v4/projects/2210/packages/helm/powder
     fi
