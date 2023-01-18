@@ -52,6 +52,10 @@ pc.defineParameter(
     [("cherry","cherry"),("dawn","dawn (e2ap v1)"),("e-release","e-release"),("f-release","f-release (e2ap v2)")],
     longDescription="O-RAN SC RIC component version.  Even when you select a version, some components may be built from our own bugfix branches, and not specifically on the exact release branch.  This parameter specifies the default branch for components that we can use unmodified.")
 pc.defineParameter(
+    "installVNC","Install VNC on first node",
+    portal.ParameterType.BOOLEAN,False,
+    longDescription="Install VNC on the first node.  This is useful if you are participating in a tutorial, demo, or simply do not want to open SSH connections in ten separate terminals on your desktop or in the web UI.")
+pc.defineParameter(
     "installORANSC","Install O-RAN SC RIC",
     portal.ParameterType.BOOLEAN,True,
     longDescription="Install the O-RAN SC RIC (https://wiki.o-ran-sc.org/pages/viewpage.action?pageId=1179659).  NB: the NexRAN xApp only works with the OSC RIC at present, so you should leave this enabled.",
@@ -748,6 +752,9 @@ tour.Description(IG.Tour.TEXT,tourDescription)
 tour.Instructions(IG.Tour.MARKDOWN,tourInstructions)
 rspec.addTour(tour)
 
+if params.installVNC:
+    rspec.initVNC()
+
 datalans = []
 
 if params.nodeCount > 1:
@@ -782,6 +789,8 @@ for i in range(0,params.nodeCount):
         node.installRootKeys(False, False)
     nodes[nodename] = node
     if i == 0:
+        if params.installVNC:
+            node._ext_children.append(emulab.emuext.startVNC(nostart=True))
         k = 0
         for x in params.sharedVlans:
             iface = node.addInterface("ifSharedVlan%d" % (k,))

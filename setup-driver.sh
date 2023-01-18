@@ -10,7 +10,11 @@ cd $SRC
 . $SRC/setup-lib.sh
 
 ALLNODESCRIPTS="setup-ssh.sh setup-disk-space.sh"
-HEADNODESCRIPTS="setup-nfs-server.sh setup-nginx.sh setup-ssl.sh setup-kubespray.sh setup-kubernetes-extra.sh"
+HEADNODESCRIPTS=""
+if [ $INSTALLVNC -eq 1 ]; then
+    HEADNODESCRIPTS="setup-vnc.sh"
+fi
+HEADNODESCRIPTS="${HEADNODESCRIPTS} setup-nfs-server.sh setup-nginx.sh setup-ssl.sh setup-kubespray.sh setup-kubernetes-extra.sh"
 if [ $INSTALLORANSC -eq 1 ]; then
     HEADNODESCRIPTS="${HEADNODESCRIPTS} setup-oran.sh setup-xapp-kpimon.sh setup-xapp-nexran.sh setup-xapp-kpimon-go.sh"
 fi
