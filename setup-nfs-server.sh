@@ -22,6 +22,10 @@ if [ -f $LOCALSETTINGS ]; then
     . $LOCALSETTINGS
 fi
 
+if [ -z "$DONFS" -o ! "$DONFS" = "1" ]; then
+    exit 0
+fi
+
 maybe_install_packages nfs-kernel-server
 service_stop nfs-kernel-server
 
@@ -37,10 +41,16 @@ if [ -n "$NFSASYNC" -a $NFSASYNC -eq 1 ]; then
     syncopt="async"
 fi
 echo "$NFSEXPORTDIR $networkip/$prefix(rw,$syncopt,no_root_squash,no_subtree_check,fsid=0)" | $SUDO tee -a /etc/exports
+echo "$NFSEXPORTDIR $KUBEPODSSUBNET(rw,$syncopt,no_root_squash,no_subtree_check,fsid=0)" | $SUDO tee -a /etc/exports
+echo "$NFSEXPORTDIR $KUBESERVICEADDRESSES(rw,$syncopt,no_root_squash,no_subtree_check,fsid=0)" | $SUDO tee -a /etc/exports
 
 echo "OPTIONS=\"-l -h 127.0.0.1 -h $dataip\"" | $SUDO tee /etc/default/rpcbind
 $SUDO sed -i.bak -e "s/^rpcbind/#rpcbind/" /etc/hosts.deny
-echo "rpcbind: ALL EXCEPT 127.0.0.1, $networkip/$prefix" | $SUDO tee -a /etc/hosts.deny
+echo "rpcbind: ALL EXCEPT 127.0.0.1, $networkip/$prefix, $KUBEPODSSUBNET, $KUBESERVICEADDRESSES" | $SUDO tee -a /etc/hosts.deny
+echo "portmapper: ALL EXCEPT 127.0.0.1, $networkip/$prefix, $KUBEPODSSUBNET, $KUBESERVICEADDRESSES" | $SUDO tee -a /etc/hosts.deny
+echo "mountd: ALL EXCEPT 127.0.0.1, $networkip/$prefix, $KUBEPODSSUBNET, $KUBESERVICEADDRESSES" | $SUDO tee -a /etc/hosts.deny
+echo "statd: ALL EXCEPT 127.0.0.1, $networkip/$prefix, $KUBEPODSSUBNET, $KUBESERVICEADDRESSES" | $SUDO tee -a /etc/hosts.deny
+echo "lockd: ALL EXCEPT 127.0.0.1, $networkip/$prefix, $KUBEPODSSUBNET, $KUBESERVICEADDRESSES" | $SUDO tee -a /etc/hosts.deny
 
 service_enable rpcbind
 service_restart rpcbind
