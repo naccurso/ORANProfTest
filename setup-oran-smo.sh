@@ -44,13 +44,6 @@ helm repo add local http://$myip:8878/charts
 #
 DEPREPO=http://gerrit.o-ran-sc.org/r/it/dep
 DEPBRANCH=$OSCSMOVERSION
-if [ $RICVERSION -eq $RICCHERRY ]; then
-    DEPREPO=https://gitlab.flux.utah.edu/powderrenewpublic/dep
-    DEPBRANCH=cherry-powder
-elif [ $RICVERSION -eq $RICDAWN ]; then
-    DEPREPO=https://gitlab.flux.utah.edu/powderrenewpublic/dep
-    DEPBRANCH=dawn-powder
-fi
 git clone $DEPREPO -b $DEPBRANCH
 cd dep
 git submodule update --init --recursive --remote
@@ -69,9 +62,10 @@ a1policymanagement:
   enabled: false
   rics: []
 EOF
-yq ea '. as $item ireduce ({}; . * $item )' \
-    default/oran-override.yaml powder/powder-oran-override.yaml \
-    > powder/oran-override.yaml
+yq m --inplace --overwrite powder/oran-override.yaml \
+    powder/powder-oran-override.yaml
+cd ..
+
 scripts/layer-1/1-build-all-charts.sh
 scripts/layer-2/2-install-oran.sh powder
 if [ -n "$INSTALLORANSCSMOSIM" -a $INSTALLORANSCSMOSIM -eq 1 ]; then

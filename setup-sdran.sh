@@ -82,7 +82,7 @@ SDRAN_CHARTREF="sdran/sd-ran"
 if [ $ONFRICPOWDER -eq 1 ]; then
     SDRAN_CHARTREF="sdran-powder/sd-ran"
 fi
-helm install -n sd-ran sd-ran $SDRAN_CHARTREF -f $OURDIR/sdran-values.yaml --version $ONFRICVERSION
+helm install -n sd-ran sd-ran $SDRAN_CHARTREF -f $OURDIR/sdran-values.yaml --version $ONFRICVERSION --wait
 
 logtend "sdran"
 touch $OURDIR/setup-sdran-done
