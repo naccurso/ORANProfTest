@@ -26,14 +26,18 @@ cd $HELM_PLUGINS/helm-push
 wget https://github.com/chartmuseum/helm-push/releases/download/v0.9.0/helm-push_0.9.0_linux_amd64.tar.gz
 tar -xzvf helm-push_0.9.0_linux_amd64.tar.gz
 rm -f helm-push_0.9.0_linux_amd64.tar.gz
+cd $OURDIR/oran-smo
 
 #
 # Install custom ONAP deploy/undeploy plugins.
 # (https://wiki.onap.org/display/DW/OOM+Helm+%28un%29Deploy+plugins)
 #
+cd $OURDIR/oran-smo
 git clone https://github.com/onap/oom
-helm plugin install $OURDIR/oran-smo/oom/kubernetes/helm/plugins/deploy
-helm plugin install $OURDIR/oran-smo/oom/kubernetes/helm/plugins/undeploy
+cd oom
+helm plugin install kubernetes/helm/plugins/deploy
+helm plugin install kubernetes/helm/plugins/undeploy
+cd ..
 
 cd $OURDIR/oran-smo
 helm repo remove local
