@@ -14,13 +14,13 @@ HEADNODESCRIPTS="setup-nfs-server.sh setup-nginx.sh setup-ssl.sh setup-kubespray
 if [ $INSTALLORANSC -eq 1 ]; then
     HEADNODESCRIPTS="${HEADNODESCRIPTS} setup-oran.sh setup-xapp-kpimon.sh setup-xapp-nexran.sh setup-xapp-kpimon-go.sh"
 fi
-if [ $INSTALLORANSCSMO -eq 1 ]; then
-    HEADNODESCRIPTS="${HEADNODESCRIPTS} setup-oran-smo.sh"
-fi
 if [ $INSTALLONFSDRAN -eq 1 ]; then
     HEADNODESCRIPTS="${HEADNODESCRIPTS} setup-sdran.sh"
 fi
 HEADNODESCRIPTS="${HEADNODESCRIPTS} setup-ran.sh"
+if [ $INSTALLORANSCSMO -eq 1 ]; then
+    HEADNODESCRIPTS="${HEADNODESCRIPTS} setup-oran-smo.sh"
+fi
 HEADNODESCRIPTS="${HEADNODESCRIPTS} setup-end.sh"
 WORKERNODESCRIPTS="setup-nfs-client.sh"
 
