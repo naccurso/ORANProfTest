@@ -67,6 +67,11 @@ pc.defineParameter(
     longDescription="Install the O-RAN SC SMO.",
     advanced=True)
 pc.defineParameter(
+    "oscSmoVersion","OSC non-RT SMO Version",
+    portal.ParameterType.STRING,"f-release",
+    [("f-release","f-release")],
+    longDescription="OSC non-RT RIC version.")
+pc.defineParameter(
     "installORANSCSMOSim","Install O-RAN SC SMO Simulators",
     portal.ParameterType.BOOLEAN,False,
     longDescription="Install the O-RAN SC SMO Simulators.",
@@ -76,6 +81,14 @@ pc.defineParameter(
     portal.ParameterType.BOOLEAN,False,
     longDescription="Install the ONF SD-RAN RIC (https://wiki.opennetworking.org/display/COM/SD-RAN+1.1+Release).  NB: the NexRAN xApp does not work with the SD-RAN RIC at the moment, although our srsLTE RIC agent will connect to the SD-RAN RIC.",
     advanced=True)
+pc.defineParameter(
+    "onfRicVersion","ONF SD-RAN RIC Version",
+    portal.ParameterType.STRING,"1.4.3",
+    longDescription="ONF SD-RAN RIC version string (e.g. `1.4.3`, `1.3.1`, `1.2.0` -- see https://docs.sd-ran.org/master/index.html).")
+pc.defineParameter(
+    "onfRicPOWDER","Use POWDER ONF SD-RAN Fork",
+    portal.ParameterType.BOOLEAN,False,
+    longDescription="Use POWDER ONF SD-RAN fork (spec-compliant KPMv2).")
 pc.defineParameter(
     "buildSrsLTE","Build SrsLTE",
     portal.ParameterType.BOOLEAN,True,

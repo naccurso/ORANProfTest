@@ -27,6 +27,14 @@ wget https://github.com/chartmuseum/helm-push/releases/download/v0.9.0/helm-push
 tar -xzvf helm-push_0.9.0_linux_amd64.tar.gz
 rm -f helm-push_0.9.0_linux_amd64.tar.gz
 
+#
+# Install custom ONAP deploy/undeploy plugins.
+# (https://wiki.onap.org/display/DW/OOM+Helm+%28un%29Deploy+plugins)
+#
+git clone https://github.com/onap/oom
+helm plugin install $OURDIR/oran-smo/oom/kubernetes/helm/plugins/deploy
+helm plugin install $OURDIR/oran-smo/oom/kubernetes/helm/plugins/undeploy
+
 cd $OURDIR/oran-smo
 helm repo remove local
 helm repo add local http://$myip:8878/charts
@@ -35,7 +43,7 @@ helm repo add local http://$myip:8878/charts
 # Deploy the SMO.
 #
 DEPREPO=http://gerrit.o-ran-sc.org/r/it/dep
-DEPBRANCH=$RICRELEASE
+DEPBRANCH=$OSCSMOVERSION
 if [ $RICVERSION -eq $RICCHERRY ]; then
     DEPREPO=https://gitlab.flux.utah.edu/powderrenewpublic/dep
     DEPBRANCH=cherry-powder
@@ -49,10 +57,25 @@ git submodule update --init --recursive --remote
 git submodule update
 
 cd smo-install
+cd helm-override
+mkdir -p powder
+cp -pv default/* powder/
+cat <<EOF >powder/powder-oran-override.yaml
+global:
+  persistence:
+    mountPath: /storage/nfs/deployment-1
+
+a1policymanagement:
+  enabled: false
+  rics: []
+EOF
+yq ea '. as $item ireduce ({}; . * $item )' \
+    default/oran-override.yaml powder/powder-oran-override.yaml \
+    > powder/oran-override.yaml
 scripts/layer-1/1-build-all-charts.sh
-scripts/layer-2/2-install-oran.sh
+scripts/layer-2/2-install-oran.sh powder
 if [ -n "$INSTALLORANSCSMOSIM" -a $INSTALLORANSCSMOSIM -eq 1 ]; then
-    scripts/layer-2/2-install-simulators.sh
+    scripts/layer-2/2-install-simulators.sh powder
 fi
 
 logtend "oran-smo"
