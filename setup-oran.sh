@@ -185,11 +185,13 @@ fi
 # registry for each image as it deploys to grab the manifest.  But we will
 # at least have the blobs.
 #
+BGPULL=0
 echo "$DOCKEROPTIONS" | grep registry-mirror
 if [ $? -eq 0 -a -e /local/repository/etc/osc-ric-cached-image-list-${RICRELEASE}.txt ]; then
     for image in `cat /local/repository/etc/osc-ric-cached-image-list-${RICRELEASE}.txt` ; do
 	$SUDO docker pull $image
-    done
+    done &
+    BGPULL=1
 fi
 
 cd bin \
@@ -248,6 +250,10 @@ EOF
 	cp -p $OURDIR/oran/appmgr/xapp_orchestrater/dev/docs/xapp_onboarder/guide/embedded-schema.json \
 	    $OURDIR/oran/xapp-embedded-schema.json
     fi
+fi
+
+if [ $BGPULL -eq 1 ]; then
+    wait
 fi
 
 logtend "oran"

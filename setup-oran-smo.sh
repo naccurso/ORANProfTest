@@ -57,11 +57,13 @@ git submodule update
 # registry for each image as it deploys to grab the manifest.  But we will
 # at least have the blobs.
 #
+BGPULL=0
 echo "$DOCKEROPTIONS" | grep registry-mirror
 if [ $? -eq 0 -a -e /local/repository/etc/osc-smo-cached-image-list-${OSCSMOVERSION}.txt ]; then
     for image in `cat /local/repository/etc/osc-smo-cached-image-list-${OSCSMOVERSION}.txt` ; do
 	$SUDO docker pull $image
-    done
+    done &
+    BGPULL=1
 fi
 
 cd smo-install
@@ -154,6 +156,10 @@ kubectl -n onap wait deployments --for condition=Available
 kubectl -n onap expose service sdnc-web-service \
     --port=8443 --target-port=8443 --name sdnc-web-service-ext \
     --external-ip=`cat /var/emulab/boot/myip`
+
+if [ $BGPULL -eq 1 ]; then
+    wait
+fi
 
 logtend "oran-smo"
 touch $OURDIR/setup-oran-smo-done
