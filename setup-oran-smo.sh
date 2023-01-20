@@ -58,7 +58,7 @@ git submodule update
 # at least have the blobs.
 #
 echo "$DOCKEROPTIONS" | grep registry-mirror
-if [ $? -eq 0 -a -e /local/repository/etc/osc-ric-cached-image-list-${OSCSMOVERSION}.txt ]; then
+if [ $? -eq 0 -a -e /local/repository/etc/osc-smo-cached-image-list-${OSCSMOVERSION}.txt ]; then
     for image in `cat /local/repository/etc/osc-smo-cached-image-list-${OSCSMOVERSION}.txt` ; do
 	$SUDO docker pull $image
     done
