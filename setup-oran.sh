@@ -188,7 +188,7 @@ fi
 echo "$DOCKEROPTIONS" | grep registry-mirror
 if [ $? -eq 0 -a -e /local/repository/etc/osc-ric-cached-image-list-${RICRELEASE}.txt ]; then
     for image in `cat /local/repository/etc/osc-ric-cached-image-list-${RICRELEASE}.txt` ; do
-	docker pull $image
+	$SUDO docker pull $image
     done
 fi
 

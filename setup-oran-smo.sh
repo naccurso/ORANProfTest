@@ -60,7 +60,7 @@ git submodule update
 echo "$DOCKEROPTIONS" | grep registry-mirror
 if [ $? -eq 0 -a -e /local/repository/etc/osc-ric-cached-image-list-${OSCSMOVERSION}.txt ]; then
     for image in `cat /local/repository/etc/osc-smo-cached-image-list-${OSCSMOVERSION}.txt` ; do
-	docker pull $image
+	$SUDO docker pull $image
     done
 fi
 
@@ -126,17 +126,17 @@ if [ -n "$OSCSMOUSECACHEDCHARTS" -a $OSCSMOUSECACHEDCHARTS -eq 1 ]; then
         https://gitlab.flux.utah.edu/api/v4/projects/1869/packages/helm/powder-osc-smo-${OSCSMOVERSION}
     helm repo update
     kubectl create namespace strimzi-system
-    helm -n strimzi-system strimzi-kafka-operator \
+    helm install -n strimzi-system strimzi-kafka-operator \
         osc-smo-powder-${OSCSMOVERSION}/strimzi-kafka-operator --version 0.28.0 \
-        --set watchAnyNamespace=true --wait --timeout 600
+        --set watchAnyNamespace=true --wait --timeout 600s
     kubectl create namespace onap
     helm -n onap deploy --debug onap osc-smo-powder-${OSCSMOVERSION}/onap \
         -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/onap-override.yml \
-	--wait --timeout 3600
+	--wait --timeout 3600s
     kubectl create namespace nonrtric
     helm -n nonrtric deploy --debug nonrtric osc-smo-powder-${OSCSMOVERSION}/nonrtric \
         -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/onap-override.yml \
-	--wait --timeout 1200
+	--wait --timeout 1200s
 else
     cd $OURDIR/oran-smo
     helm repo remove local
