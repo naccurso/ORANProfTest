@@ -84,8 +84,8 @@ global:
   persistence:
     mountPath: /storage/nfs/deployment-1
 EOF
-yq m --inplace --overwrite powder/oran-override.yaml \
-    powder/powder-oran-override.yaml
+yq m --inplace --overwrite powder/onap-override.yaml \
+    powder/powder-onap-override.yaml
 cd ..
 
 #
@@ -128,7 +128,7 @@ if [ -n "$OSCSMOUSECACHEDCHARTS" -a $OSCSMOUSECACHEDCHARTS -eq 1 ]; then
     kubectl create namespace strimzi-system
     helm install -n strimzi-system strimzi-kafka-operator \
         osc-smo-powder-${OSCSMOVERSION}/strimzi-kafka-operator --version 0.28.0 \
-        --set watchAnyNamespace=true --wait --timeout 600s
+        --set watchAnyNamespace=true --wait --timeout 300s
     kubectl create namespace onap
     helm -n onap deploy --debug onap osc-smo-powder-${OSCSMOVERSION}/onap \
         -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/onap-override.yaml \
