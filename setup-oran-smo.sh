@@ -133,8 +133,7 @@ if [ -n "$OSCSMOUSECACHEDCHARTS" -a $OSCSMOUSECACHEDCHARTS -eq 1 ]; then
         --set watchAnyNamespace=true --wait --timeout 300s
     kubectl create namespace onap
     helm -n onap deploy --debug onap osc-smo-powder-${OSCSMOVERSION}/onap \
-        -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/onap-override.yaml \
-	--wait --timeout 3600s
+        -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/onap-override.yaml
     kubectl create namespace nonrtric
     helm -n nonrtric deploy --debug nonrtric osc-smo-powder-${OSCSMOVERSION}/nonrtric \
         -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/onap-override.yaml \
