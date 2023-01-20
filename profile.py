@@ -77,6 +77,11 @@ pc.defineParameter(
     longDescription="OSC non-RT RIC version.",
     advanced=True)
 pc.defineParameter(
+    "oscSmoUseCachedCharts","Use Cached OSC SMO Charts",
+    portal.ParameterType.BOOLEAN,True,
+    longDescription="Install the O-RAN SC SMO from helm charts cached on POWDER *if available* (chart build is lengthy).",
+    advanced=True)
+pc.defineParameter(
     "installORANSCSMOSim","Install O-RAN SC SMO Simulators",
     portal.ParameterType.BOOLEAN,False,
     longDescription="Install the O-RAN SC SMO Simulators.",

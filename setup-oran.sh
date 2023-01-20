@@ -177,6 +177,21 @@ if [ $HELM_IS_V3 -eq 0 ]; then
     nohup helm servecm --port=8879 --context-path=/charts --storage local --storage-local-rootdir $HELM_REPOSITORY_CACHE/local/ --listen-host localhost 2>&1 >/dev/null &
     sleep 4
 fi
+
+#
+# Performance hack: pre-pull image content if we might have a mirror.
+#
+# NB: this is just the blobs.  We (k8s) will have to hit the original
+# registry for each image as it deploys to grab the manifest.  But we will
+# at least have the blobs.
+#
+echo "$DOCKEROPTIONS" | grep registry-mirror
+if [ $? -eq 0 -a -e /local/repository/etc/osc-ric-cached-image-list-${RICRELEASE}.txt ]; then
+    for image in `cat /local/repository/etc/osc-ric-cached-image-list-${RICRELEASE}.txt` ; do
+	docker pull $image
+    done
+fi
+
 cd bin \
     && ./deploy-ric-platform -f $OURDIR/oran/example_recipe.yaml
 
