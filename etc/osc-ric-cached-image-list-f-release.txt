@@ -1,0 +1,10 @@
+o-ran-sc/ric-plt-a1:2.5.0
+o-ran-sc/ric-plt-alarmmanager:0.5.10
+o-ran-sc/ric-plt-appmgr:0.4.3
+o-ran-sc/ric-plt-dbaas:0.5.2
+o-ran-sc/ric-plt-e2mgr:5.4.17
+o-ran-sc/ric-plt-o1:0.5.2
+o-ran-sc/ric-plt-rtmgr:0.7.8
+o-ran-sc/ric-plt-submgr:0.7.1
+o-ran-sc/ric-plt-vespamgr:0.7.4
+o-ran-sc/xapp-onboarder:1.0.7
