@@ -134,10 +134,16 @@ if [ -n "$OSCSMOUSECACHEDCHARTS" -a $OSCSMOUSECACHEDCHARTS -eq 1 ]; then
     kubectl create namespace onap
     helm -n onap deploy --debug onap osc-smo-powder-${OSCSMOVERSION}/onap \
         -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/onap-override.yaml
+    kubectl -n onap wait deployments --for condition=Available --all
     kubectl create namespace nonrtric
-    helm -n nonrtric deploy --debug nonrtric osc-smo-powder-${OSCSMOVERSION}/nonrtric \
-        -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/onap-override.yaml \
-	--wait --timeout 1200s
+    helm -n nonrtric install --debug oran-nonrtric osc-smo-powder-${OSCSMOVERSION}/nonrtric \
+        -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/oran-override.yaml
+    if [ -n "$INSTALLORANSCSMOSIM" -a $INSTALLORANSCSMOSIM -eq 1 ]; then
+	helm install -n network --create-namespace --debug oran-simulator \
+	    osc-smo-powder-f-release/ru-du-simulators \
+	    -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/network-simulators-override.yaml \
+	    -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/network-simulators-topology-override.yaml
+    fi
 else
     cd $OURDIR/oran-smo
     helm repo remove local
