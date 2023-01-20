@@ -138,6 +138,7 @@ if [ -n "$OSCSMOUSECACHEDCHARTS" -a $OSCSMOUSECACHEDCHARTS -eq 1 ]; then
     kubectl create namespace nonrtric
     helm -n nonrtric install --debug oran-nonrtric osc-smo-powder-${OSCSMOVERSION}/nonrtric \
         -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/oran-override.yaml
+    kubectl -n nonrtric wait deployments --for condition=Available --all
     if [ -n "$INSTALLORANSCSMOSIM" -a $INSTALLORANSCSMOSIM -eq 1 ]; then
 	helm install -n network --create-namespace --debug oran-simulator \
 	    osc-smo-powder-f-release/ru-du-simulators \
