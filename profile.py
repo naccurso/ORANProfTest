@@ -714,6 +714,19 @@ curl -L -X DELETE "http://${ONBOARDER_HTTP}:8080/api/charts/nexran/0.1.0"
 curl -L -X DELETE "http://${ONBOARDER_HTTP}:8080/api/charts/scp-kpimon/1.0.1"
 ```
 
+### Restarting O-RAN (if necessary)
+
+If one or more of your O-RAN components has failed (e.g. subscriptions/indications not making it from/to your xApps, or if RAN nodes cannot register with the RIC's e2term service), you may want to try a partial restart.  The following command will quickly restart the core RIC services and is much less invasive than a full redeploy:
+```
+kubectl -n ricplt rollout restart \
+    deployments/deployment-ricplt-e2term-alpha \
+	deployments/deployment-ricplt-e2mgr \
+	deployments/deployment-ricplt-submgr \
+	deployments/deployment-ricplt-rtmgr \
+	deployments/deployment-ricplt-appmgr \
+	statefulsets/statefulset-ricplt-dbaas-server
+```
+
 ### Redeploying O-RAN (if necessary)
 
 If you want to change anything about your O-RAN deployment, or if a component has failed during a multi-day run, you can run the following commands.  (Note that you can edit `example_recipe.yaml` first if you want to change the version of any of the O-RAN containers, or bits of their configuration.)
@@ -725,9 +738,35 @@ for ns in ricplt ricinfra ricxapp ; do kubectl get pods -n $ns ; kubectl wait po
 ```
 After the pods in each RIC namespace are ready (the commands in the `for` loop complete successfully), you can re-run the demo.  Note that you must reset all the environment variables that were initialized in previous steps because O-RAN container and service IP addresses will have changed.
 
+## OSC SMO
+
+If you selected the `Install O-RAN SC SMO` parameter when you created your experiment, you can experiment with the OSC SMO.  You should be able to login to the ODLUX web UI.  ODLUX is part of the CCSDK (https://docs.onap.org/projects/onap-ccsdk-distribution/en/latest/release-notes.html), and originated as a fork of the OpenDayLight project's DLUX project.  With this application, you can visualize simulated RAN elements that connect via the O-RAN O1 interface and provide configurability via NETCONF and VES event messages.
+
+Browse to https://{host-node-0}:8443 and enter username `admin` and password `Kp8bJ4SXszM0WXlhak3eHlcse2gAw84vaoGGmJvUy2U`.  Click `Connect` in the left hand navbar.  If you selected the `Install O-RAN SC SMO Simulators` parameter when you created your experiment, you should see several simulated O-RU devices; click to explore them.  If not, you can start the simulators manually via
+(if you selected the `Use Cached OSC SMO Charts`:)
+```
+helm install -n network --create-namespace --debug oran-simulator \
+    osc-smo-powder-f-release/ru-du-simulators \
+    -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/network-simulators-override.yaml \
+    -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/network-simulators-topology-override.yaml
+```
+(or if not:)
+```
+cd /local/setup/oran-smo/dep/smo-install
+scripts/layer-2/2-install-simulators.sh powder
+```
+
+You can also inspect the network topology and its configuration via OpenDayLight's APIs:
+```
+export ODL=`kubectl -n onap get services/sdnc-oam -o jsonpath="{.spec.clusterIP}:{.spec.ports[?(@.targetPort==8181)].port}"`
+curl -s -k -u "admin:Kp8bJ4SXszM0WXlhak3eHlcse2gAw84vaoGGmJvUy2U" http://$ODL/restconf/operational/network-topology:network-topology
+```
+(See https://docs.opendaylight.org/projects/netconf/en/latest/user-guide.html for more information on the ODL NETCONF connector's API.)
+
+
 ## SD-RAN
 
-There are basic instructions for deploying and testing SD-RAN 1.1 here:  .  We follow their deployment guide, except that we install the SD-RAN umbrella chart in the `sd-ran` Kubernetes namespace, so you will need to modify their example commands accordingly.  To connect our RIC-enabled srsLTE, you will need to run `srsenb` slightly differently than for O-RAN SC:
+There are basic instructions for deploying and testing SD-RAN here: https://docs.sd-ran.org/master/release_notes/sdran_1.4.html .  We follow their deployment guide, except that we install the SD-RAN umbrella chart in the `sd-ran` Kubernetes namespace, so you will need to modify their example commands accordingly.  To connect our RIC-enabled srsLTE, you will need to run `srsenb` slightly differently than for O-RAN SC:
 
 ```
 export E2TERM_SCTP=`kubectl get service -n sd-ran onos-e2t -o jsonpath='{.spec.clusterIP}'`
