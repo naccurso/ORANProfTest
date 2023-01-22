@@ -28,7 +28,9 @@ maybe_install_packages \
     cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev \
     libconfig++-dev libsctp-dev libzmq3-dev
 
-git clone https://gitlab.flux.utah.edu/powderrenewpublic/srslte-ric
+if [ ! -e srslte-ric ]; then
+    git clone https://gitlab.flux.utah.edu/powderrenewpublic/srslte-ric
+fi
 cd srslte-ric
 mkdir -p build
 cd build
@@ -46,6 +48,10 @@ else
 fi
 $SUDO make install
 $SUDO ./srslte_install_configs.sh service
+
+# Fix ue1's IP addr, for simulated demos.
+$SUDO sed -ie 's/^\(ue1.*\),dynamic/\1,192.168.0.2/' \
+    /etc/srslte/user_db.csv
 
 logtend "srslte"
 touch $OURDIR/setup-srslte-done
