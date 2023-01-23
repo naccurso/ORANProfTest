@@ -6,6 +6,10 @@ if [ -z "$SLEEPINT" ]; then
 fi
 
 export NEXRAN_XAPP=`kubectl get svc -n ricxapp --field-selector metadata.name=service-ricxapp-nexran-rmr -o jsonpath='{.items[0].spec.clusterIP}'`
+if [ -z "$NEXRAN_XAPP" ]; then
+    echo "ERROR: cannot find your NexRAN xApp; might need to recreate it."
+    exit 1
+fi
 
 echo NEXRAN_XAPP=$NEXRAN_XAPP ; echo
 
