@@ -474,7 +474,7 @@ sudo /local/setup/srslte-ric/build/srsepc/src/srsepc --spgw.sgi_if_addr=192.168.
 
 2. In a new ssh connection to `node-0`, run an srsLTE eNodeB.
 ```
-export E2TERM_SCTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-e2term-sctp-alpha -o jsonpath='{.items[0].spec.clusterIP}'`
+. /local/repository/demo/get-env.sh
 sudo /local/setup/srslte-ric/build/srsenb/src/srsenb \
     --enb.n_prb=15 --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq \
     --rf.device_args="fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001" \
@@ -503,7 +503,7 @@ Note that the IMSI and key correspond to values for `ue1` in `/etc/srslte/user_d
 
         (`dawn` and lower)
         ```
-        export KONG_PROXY=`kubectl get svc -n ricplt -l app.kubernetes.io/name=kong -o jsonpath='{.items[0].spec.clusterIP}'`
+        . /local/repository/demo/get-env.sh
         curl -L -X POST \
             "http://${KONG_PROXY}:32080/onboard/api/v1/onboard/download" \
             --header 'Content-Type: application/json' \
@@ -553,7 +553,7 @@ Note that the IMSI and key correspond to values for `ue1` in `/etc/srslte/user_d
 
 2.  In a new ssh connection to `node-0`, collect the IP address of the `nexran` northbound RESTful interface (so that you can send API invocations via `curl`).  This is the terminal you will use to run the demo driver script.
 ```
-export NEXRAN_XAPP=`kubectl get svc -n ricxapp --field-selector metadata.name=service-ricxapp-nexran-rmr -o jsonpath='{.items[0].spec.clusterIP}'` ; echo $NEXRAN_XAPP
+        . /local/repository/demo/get-env.sh
 ```
 
 3.  Make sure you can talk to the `nexran` xApp:
@@ -597,7 +597,7 @@ You should see the client bandwidth increase to around 18Mbps, because now both 
 1. In a new ssh connection to `node-0`, run the following commands to onboard and deploy the `scp-kpimon` xApp:
     - Onboard the `scp-kpimon` xApp:
     ```
-    export KONG_PROXY=`kubectl get svc -n ricplt -l app.kubernetes.io/name=kong -o jsonpath='{.items[0].spec.clusterIP}'`
+    . /local/repository/demo/get-env.sh
     curl -L -X POST \
         "http://${KONG_PROXY}:32080/onboard/api/v1/onboard/download" \
         --header 'Content-Type: application/json' \
@@ -702,14 +702,14 @@ kubectl -n ricxapp rollout restart deployment ricxapp-scp-kpimon
 
 8. To undeploy the xApps, you can run
 ```
-export APPMGR_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-appmgr-http -o jsonpath='{.items[0].spec.clusterIP}'`
+. /local/repository/demo/get-env.sh
 curl -L -X DELETE http://${APPMGR_HTTP}:8080/ric/v1/xapps/nexran
 curl -L -X DELETE http://${APPMGR_HTTP}:8080/ric/v1/xapps/scp-kpimon
 ```
 
 9. To remove the xApp descriptors (e.g. to re-upload with new images or configuration):
 ```
-export ONBOARDER_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-xapp-onboarder-http -o jsonpath='{.items[0].spec.clusterIP}'`
+. /local/repository/demo/get-env.sh
 curl -L -X DELETE "http://${ONBOARDER_HTTP}:8080/api/charts/nexran/0.1.0"
 curl -L -X DELETE "http://${ONBOARDER_HTTP}:8080/api/charts/scp-kpimon/1.0.1"
 ```
