@@ -300,6 +300,10 @@ curl -X POST -H 'Content-type: application/json' \
     -d "{\"overwrite\":true,\"inputs\":[],\"folderId\":0,\"dashboard\":$(cat /local/repository/etc/nexran-grafana-dashboard.json) }" \
     http://`cat /var/emulab/boot/myip`:3003/api/dashboards/import
 
+maybe_install_packages influxdb-client
+INFLUXDB_IP=`kubectl get svc -n ricplt --field-selector metadata.name=ricplt-influxdb -o jsonpath='{.items[0].spec.clusterIP}'`
+echo create database nexran | influx -host $INFLUXDB_IP
+
 if [ $BGPULL -eq 1 ]; then
     wait
 fi
