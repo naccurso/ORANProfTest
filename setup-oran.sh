@@ -255,7 +255,7 @@ fi
 # Install Grafana
 MIP=`getnodeip $HEAD $MGMTLAN`
 $SUDO cp -p /local/repository/etc/nexran-grafana-dashboard.json \
-    /var/www/profile-public/
+    /local/profile-public/
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo update
 cat <<EOF >$OURDIR/grafana-values.yaml
@@ -275,36 +275,29 @@ datasources:
   datasources.yaml:
     apiVersion: 1
     datasources:
-      # <string, required> name of the datasource. Required
       - name: InfluxDB
-      # <string, required> datasource type. Required
-      type: influx
-      orgId: 1
-      # <string> url
-      url: http://ricplt-influxdb:8086
-      # <string> database password, if used
-      password:
-      # <string> database user, if used
-      user:
-      # <string> database name, if used
-      database:
-      # <bool> enable/disable basic auth
-      basicAuth:
-      # <string> basic auth username
-      basicAuthUser:
-      # <string> basic auth password
-      basicAuthPassword:
-      # <bool> enable/disable with credentials headers
-      withCredentials:
-      # <bool> mark as default datasource. Max one per org
-      isDefault: true
-      editable: true
+        type: influxdb
+        uid: OzcR1Jo4k
+        url: "http://ricplt-influxdb:8086"
+        password:
+        user:
+        database: nexran
+        basicAuth:
+        basicAuthUser:
+        basicAuthPassword:
+        withCredentials:
+        isDefault: true
+        editable: true
 EOF
 kubectl -n ricplt create secret generic custom-grafana-secret \
     --from-literal="admin-user=admin" \
     --from-literal="admin-password=$ADMIN_PASS"
 helm -n ricplt install ricplt-grafana grafana/grafana \
-    -f $OURDIR/grafana-values.yaml
+    -f $OURDIR/grafana-values.yaml --debug --wait
+curl -X POST -H 'Content-type: application/json' \
+    -H "Authorization: Basic $AUTHSTR" \
+    -d "{\"overwrite\":true,\"inputs\":[],\"folderId\":0,\"dashboard\":$(cat /local/repository/etc/nexran-grafana-dashboard.json) }" \
+    http://`cat /var/emulab/boot/myip`:3003/api/dashboards/import
 
 if [ $BGPULL -eq 1 ]; then
     wait

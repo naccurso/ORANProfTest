@@ -463,6 +463,23 @@ kubectl logs -f -n ricplt -l app=ricplt-rtmgr
 
 This demo runs srsLTE in simulated mode with a single UE.  This may not sound exciting from a RAN slicing standpoint, but because our slice scheduler has a toggleable work conserving mode, you can observe the effects of dynamic slice resource reconfiguration with a TCP stream to a single UE, and it's a bit easier to set up.
 
+
+#### Open the Grafana NexRAN Dashboard in your browser
+
+The profile's setup scripts have installed Grafana, pointed it to the InfluxDB
+instance created by the OSC RIC install, and you should be able to access it at
+[https://{host-node-0}:3003/d/VKl6zaTVz/nexran](https://{host-node-0}:3003/d/VKl6zaTVz/nexran) .  Open this link in a new tab or window.  Use the
+`admin` username and the automatically-generated random password
+`{password-adminPass}` to login.  If the dashboard-direct link does not work,
+but shows the Grafana interface, mouse over the icon with four squares on the
+left, and click `Browse`, click `General`, and select the NexRAN dashboard.
+
+Make sure you can see several UE and Slice panels.  There will be nothing on
+the graphs at first (you may see `No Data` or error messages---this is ok).
+Once you start your RAN nodes and generate traffic on the link, you will reload
+this page, and data will begin to populate the graphs.
+
+
 #### Starting simulated EPC/NodeB/UE(s)
 
 (NB: if you have RAN resources in another experiment, you will most likely want to run both the EPC and NodeB near those RAN resources, and only deploy xApps using these demo instructions.  In that case, you would only need the part of Step 2 below that collects the `E2TERM_SCTP` environment variable.  Then you'll need to add a route from connected RAN experiments over the shared vlan to that IP address, which is within a virtual network inside Kubernetes.)
@@ -478,7 +495,9 @@ sudo /local/setup/srslte-ric/build/srsepc/src/srsepc --spgw.sgi_if_addr=192.168.
 sudo /local/setup/srslte-ric/build/srsenb/src/srsenb \
     --enb.n_prb=15 --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq \
     --rf.device_args="fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001" \
-    --ric.agent.remote_ipv4_addr=${E2TERM_SCTP} --log.all_level=warn --ric.agent.log_level=debug --log.filename=stdout \
+    --ric.agent.remote_ipv4_addr=${E2TERM_SCTP} \
+    --ric.agent.local_ipv4_addr=10.10.1.1 --ric.agent.local_port=52525 \
+    --log.all_level=warn --ric.agent.log_level=debug --log.filename=stdout \
     --slicer.enable=1 --slicer.workshare=0
 ```
 The first line grabs the current E2 termination service's SCTP IP endpoint address (its kubernetes pod IP -- note that there is a different IP address for the E2 term service's HTTP endpoint); then, the second line runs an srsLTE eNodeB in simulated mode, which will connect to the E2 termination service.  If all goes well, within a few seconds, you will see XML message dumps of the E2SetupRequest (sent by the eNodeB) and the E2SetupResponse (sent by the E2 manager, and relayed to the eNodeB by the E2 termination service).
@@ -562,31 +581,39 @@ curl -i -X GET http://${NEXRAN_XAPP}:8000/v1/version ; echo ; echo
 ```
 (You should see some version/build info, formatted as a JSON document.)
 
-4.  In a new ssh connection to `node-0`, run an iperf server *in the UE's network namespace* (so that you can observe the effects of dynamic slicing in the downlink:
+4. To see statistics in your Grafana dashboard, configure the NexRAN xApp:
+```
+. /local/repository/demo/get-env.sh
+curl -L -X PUT http://$NEXRAN_XAPP:8000/v1/appconfig \
+    -H "Content-type: application/json" \
+    -d '{"kpm_interval_index":18,"influxdb_url":"http://'$INFLUXDB_IP':8086?db=nexran"}'
+```
+
+5.  In a new ssh connection to `node-0`, run an iperf server *in the UE's network namespace* (so that you can observe the effects of dynamic slicing in the downlink:
 ```
 sudo ip netns exec ue1 iperf -s -p 5010 -i 4 -t 36000
 ```
 
-5.  In a new ssh connection to `node-0`, run an iperf client:
+6.  In a new ssh connection to `node-0`, run an iperf client:
 ```
 iperf -c 192.168.0.2 -p 5010 -i 4 -t 36000
 ```
 You should see a bandwidth of approximately 35-40Mbps on a `d740` with 15 PRBs; but the important thing is to observe the baseline.  By default, unsliced UEs can utilize all available downlink PRBs.
 
-6.  Run the simple demo script.  (This script creates two slices, `fast` and `slow`, where `fast` is given a proportional share of `1024` (the max, range is `1-1024`), and `slow` is given a share of `256`.
+7.  Run the simple demo script.  (This script creates two slices, `fast` and `slow`, where `fast` is given a proportional share of `1024` (the max, range is `1-1024`), and `slow` is given a share of `256`.
 ```
 /local/repository/run-nexran-demo.sh
 ```
 You will see several API invocations, and their return output, scroll past, each prefixed with a message indicating the intent of the invocation.  You should see the client bandwidth drop to around 29Mbps.  This happens because the `fast` slice now has an 80% share of the available bandwidth, and work-conserving mode is disable, so the scheduler is leaving 20% of the PRBs available for UEs bound to the `slow` slice.
 
-7.  Invert the priority of the `fast` and `slow` slices:
+8.  Invert the priority of the `fast` and `slow` slices:
 ```
 curl -i -X PUT -H "Content-type: application/json" -d '{"allocation_policy":{"type":"proportional","share":1024}}' http://${NEXRAN_XAPP}:8000/v1/slices/slow ; echo ; echo ;
 curl -i -X PUT -H "Content-type: application/json" -d '{"allocation_policy":{"type":"proportional","share":256}}' http://${NEXRAN_XAPP}:8000/v1/slices/fast ; echo ; echo
 ```
 You should see the client bandwidth drop further, to around 7Mbps.
 
-8.  Equalize the priority of the `fast` slice to match the modified `slow` slice:
+9.  Equalize the priority of the `fast` slice to match the modified `slow` slice:
 ```
 curl -i -X PUT -H "Content-type: application/json" -d '{"allocation_policy":{"type":"proportional","share":1024}}' http://${NEXRAN_XAPP}:8000/v1/slices/fast ; echo ; echo
 ```

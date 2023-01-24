@@ -1,6 +1,9 @@
 #!/bin/sh
 
-SLEEPINT=4
+SLEEPINT=$1
+if [ -z "$SLEEPINT" ]; then
+    SLEEPINT=4
+fi
 
 export NEXRAN_XAPP=`kubectl get svc -n ricxapp --field-selector metadata.name=service-ricxapp-nexran-rmr -o jsonpath='{.items[0].spec.clusterIP}'`
 
