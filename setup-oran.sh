@@ -294,6 +294,7 @@ kubectl -n ricplt create secret generic custom-grafana-secret \
     --from-literal="admin-password=$ADMIN_PASS"
 helm -n ricplt install ricplt-grafana grafana/grafana \
     -f $OURDIR/grafana-values.yaml --debug --wait
+AUTHSTR=`echo "import base64; import sys; sys.stdout.write(base64.b64encode('admin:$ADMIN_PASS'));" | python`
 curl -X POST -H 'Content-type: application/json' \
     -H "Authorization: Basic $AUTHSTR" \
     -d "{\"overwrite\":true,\"inputs\":[],\"folderId\":0,\"dashboard\":$(cat /local/repository/etc/nexran-grafana-dashboard.json) }" \
