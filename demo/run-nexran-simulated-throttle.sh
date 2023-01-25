@@ -20,7 +20,7 @@ curl -i -X POST -H "Content-type: application/json" -d '{"type":"eNB","id":411,"
 sleep $SLEEPINT
 
 echo Creating "'fast'" Slice: ; echo
-curl -i -X POST -H "Content-type: application/json" -d '{"name":"fast","allocation_policy":{"type":"proportional","share":1024,"auto_equalize":false,"throttle":true,"throttle_threshold":100000000,"throttle_period":60,"throttle_share":256}}' http://${NEXRAN_XAPP}:8000/v1/slices ; echo ; echo ;
+curl -i -X POST -H "Content-type: application/json" -d '{"name":"fast","allocation_policy":{"type":"proportional","share":1024,"auto_equalize":false,"throttle":true,"throttle_threshold":100000000,"throttle_period":30,"throttle_target":10000000}}' http://${NEXRAN_XAPP}:8000/v1/slices ; echo ; echo ;
 
 sleep $SLEEPINT
 
