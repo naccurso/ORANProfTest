@@ -430,31 +430,31 @@ These instructions take you through you a demo of the interaction between our RA
 
 1.  (optional)  In a new ssh connection to `node-0`:
 
-    kubectl logs -f -n ricplt -l app=ricplt-e2term-alpha
+        kubectl logs -f -n ricplt -l app=ricplt-e2term-alpha
 
     (to view the output of the RIC E2 termination service, to which RAN nodes connect over SCTP).
 
 2.  (optional)  In a new ssh connection to `node-0`:
 
-    kubectl logs -f -n ricplt -l app=ricplt-submgr
+        kubectl logs -f -n ricplt -l app=ricplt-submgr
 
     (to view the output of the RIC subscription manager service, which aggregates xApp subscription requests and forwards them to target RAN nodes)
 
 3.  (optional) In a new ssh connection to `node-0`:
 
-    kubectl logs -f -n ricplt -l app=ricplt-e2mgr
+        kubectl logs -f -n ricplt -l app=ricplt-e2mgr
 
     (to view the output of the RIC E2 manager service, which shows information about connected RAN nodes)
 
 4.  (optional) In a new ssh connection to `node-0`:
 
-    kubectl logs -f -n ricplt -l app=ricplt-appmgr
+        kubectl logs -f -n ricplt -l app=ricplt-appmgr
 
     (to view the output of the RIC application manager service, which controls xApp deployment/lifecycle)
 
 5.  (optional) In a new ssh connection to `node-0`:
 
-    kubectl logs -f -n ricplt -l app=ricplt-rtmgr
+        kubectl logs -f -n ricplt -l app=ricplt-rtmgr
 
     (to view the output of the RIC route manager, which manages RMR routes across the RIC components)
 
@@ -486,20 +486,20 @@ this page, and data will begin to populate the graphs.
 
 1.  In a new ssh connection to `node-0`, run an srsLTE EPC:
 
-    sudo /local/setup/srslte-ric/build/srsepc/src/srsepc --spgw.sgi_if_addr=192.168.0.1 2>&1 >> /local/logs/srsepc.log &
+        sudo /local/setup/srslte-ric/build/srsepc/src/srsepc --spgw.sgi_if_addr=192.168.0.1 2>&1 >> /local/logs/srsepc.log &
 
     (NB: this runs in the background to save a required terminal.)
 
 2.  In the same connection to `node-0` where you ran `srsepc`, run an srsLTE eNodeB.
 
-    . /local/repository/demo/get-env.sh
-    sudo /local/setup/srslte-ric/build/srsenb/src/srsenb \
-        --enb.n_prb=15 --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq \
-        --rf.device_args="fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001" \
-        --ric.agent.remote_ipv4_addr=${E2TERM_SCTP} \
-        --ric.agent.local_ipv4_addr=10.10.1.1 --ric.agent.local_port=52525 \
-        --log.all_level=warn --ric.agent.log_level=debug --log.filename=stdout \
-        --slicer.enable=1 --slicer.workshare=0
+        . /local/repository/demo/get-env.sh
+        sudo /local/setup/srslte-ric/build/srsenb/src/srsenb \
+            --enb.n_prb=15 --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq \
+            --rf.device_args="fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001" \
+            --ric.agent.remote_ipv4_addr=${E2TERM_SCTP} \
+            --ric.agent.local_ipv4_addr=10.10.1.1 --ric.agent.local_port=52525 \
+            --log.all_level=warn --ric.agent.log_level=debug --log.filename=stdout \
+            --slicer.enable=1 --slicer.workshare=0
 
     The first line grabs the current E2 termination service's SCTP IP endpoint address (its kubernetes pod IP -- note that there is a different IP address for the E2 term service's HTTP endpoint); then, the second line runs an srsLTE eNodeB in simulated mode, which will connect to the E2 termination service.  If all goes well, within a few seconds, you will see XML message dumps of the E2SetupRequest (sent by the eNodeB) and the E2SetupResponse (sent by the E2 manager, and relayed to the eNodeB by the E2 termination service).
     (NB: the first srsenb argument changes the available PRBs because when simulating we have everything on a single node, want to support older hardware, and absolute RAN performance is not the goal of this demo.)
@@ -507,11 +507,11 @@ this page, and data will begin to populate the graphs.
 
 3.  In a new ssh connection to `node-0`, run a simulated UE, placing its network interface into a separate network namespace:
 
-    sudo ip netns add ue1
-    sudo /local/setup/srslte-ric/build/srsue/src/srsue \
-        --rf.device_name=zmq --rf.device_args="tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,id=ue,base_srate=23.04e6" \
-        --usim.algo=xor --usim.imsi=001010123456789 --usim.k=00112233445566778899aabbccddeeff --usim.imei=353490069873310 \
-        --log.all_level=warn --log.filename=stdout --gw.netns=ue1
+        sudo ip netns add ue1
+        sudo /local/setup/srslte-ric/build/srsue/src/srsue \
+            --rf.device_name=zmq --rf.device_args="tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,id=ue,base_srate=23.04e6" \
+            --usim.algo=xor --usim.imsi=001010123456789 --usim.k=00112233445566778899aabbccddeeff --usim.imei=353490069873310 \
+            --log.all_level=warn --log.filename=stdout --gw.netns=ue1
 
     Note that we place the UE's mobile network interface in separate network namespace since the SPGW network interface from the EPC process is already in the root network namespace with an `192.168.0.1` address in the same subnet as the UE's address will be in.
     Note that the IMSI and key correspond to values for `ue1` in `/etc/srslte/user_db.csv`.  If you want to change the contents of that file, make sure to first kill the EPC process, then modify, then restart EPC.  The EPC process updates this file when it exits.
@@ -573,34 +573,34 @@ this page, and data will begin to populate the graphs.
 
 2.  In a new ssh connection to `node-0`, collect the IP address of the `nexran` northbound RESTful interface (so that you can send API invocations via `curl`).  This is the terminal you will use to run the demo driver script.
 
-    . /local/repository/demo/get-env.sh
+        . /local/repository/demo/get-env.sh
 
 3.  Make sure you can talk to the `nexran` xApp:
 
-    curl -i -X GET http://${NEXRAN_XAPP}:8000/v1/version ; echo ; echo
+        curl -i -X GET http://${NEXRAN_XAPP}:8000/v1/version ; echo ; echo
 
     (You should see some version/build info, formatted as a JSON document.)
 
 4.  To see statistics in your Grafana dashboard, configure the NexRAN xApp:
 
-    . /local/repository/demo/get-env.sh
-    curl -L -X PUT http://$NEXRAN_XAPP:8000/v1/appconfig \
-        -H "Content-type: application/json" \
-        -d '{"kpm_interval_index":18,"influxdb_url":"http://'$INFLUXDB_IP':8086?db=nexran"}'
+        . /local/repository/demo/get-env.sh
+        curl -L -X PUT http://$NEXRAN_XAPP:8000/v1/appconfig \
+            -H "Content-type: application/json" \
+            -d '{"kpm_interval_index":18,"influxdb_url":"http://'$INFLUXDB_IP':8086?db=nexran"}'
 
 5.  In a new ssh connection to `node-0`, run an iperf server *in the UE's network namespace* (so that you can observe the effects of dynamic slicing in the downlink:
 
-    sudo ip netns exec ue1 iperf -s -p 5010 -i 4 -t 36000
+        sudo ip netns exec ue1 iperf -s -p 5010 -i 4 -t 36000
 
 6.  In a new ssh connection to `node-0`, run an iperf client:
 
-    iperf -c 192.168.0.2 -p 5010 -i 4 -t 36000
+        iperf -c 192.168.0.2 -p 5010 -i 4 -t 36000
 
     You should see a bandwidth of approximately 35-40Mbps on a `d740` with 15 PRBs; but the important thing is to observe the baseline.  By default, unsliced UEs can utilize all available downlink PRBs.
 
 7.  Run the simple demo script.  (This script creates two slices, `fast` and `slow`, where `fast` is given a proportional share of `1024` (the max, range is `1-1024`), and `slow` is given a share of `256`.
 
-    /local/repository/run-nexran-demo.sh
+        /local/repository/run-nexran-demo.sh
 
     You will see several API invocations, and their return output, scroll past, each prefixed with a message indicating the intent of the invocation.  You should see the client bandwidth drop to around 29Mbps.  This happens because the `fast` slice now has an 80% share of the available bandwidth, and work-conserving mode is disable, so the scheduler is leaving 20% of the PRBs available for UEs bound to the `slow` slice.
 
@@ -608,15 +608,15 @@ this page, and data will begin to populate the graphs.
 
 8.  Invert the priority of the `fast` and `slow` slices:
 
-    . /local/repository/demo/get-env.sh
-    curl -i -X PUT -H "Content-type: application/json" -d '{"allocation_policy":{"type":"proportional","share":1024}}' http://${NEXRAN_XAPP}:8000/v1/slices/slow ; echo ; echo ;
-    curl -i -X PUT -H "Content-type: application/json" -d '{"allocation_policy":{"type":"proportional","share":256}}' http://${NEXRAN_XAPP}:8000/v1/slices/fast ; echo ; echo
+        . /local/repository/demo/get-env.sh
+        curl -i -X PUT -H "Content-type: application/json" -d '{"allocation_policy":{"type":"proportional","share":1024}}' http://${NEXRAN_XAPP}:8000/v1/slices/slow ; echo ; echo ;
+        curl -i -X PUT -H "Content-type: application/json" -d '{"allocation_policy":{"type":"proportional","share":256}}' http://${NEXRAN_XAPP}:8000/v1/slices/fast ; echo ; echo
 
     You should see the client bandwidth drop further, to around 7Mbps.
 
 9.  Equalize the priority of the `fast` slice to match the modified `slow` slice:
 
-    curl -i -X PUT -H "Content-type: application/json" -d '{"allocation_policy":{"type":"proportional","share":1024}}' http://${NEXRAN_XAPP}:8000/v1/slices/fast ; echo ; echo
+        curl -i -X PUT -H "Content-type: application/json" -d '{"allocation_policy":{"type":"proportional","share":1024}}' http://${NEXRAN_XAPP}:8000/v1/slices/fast ; echo ; echo
 
     You should see the client bandwidth increase to around 18Mbps, because now both slices are allocated a 50% share.
 
@@ -653,13 +653,13 @@ this page, and data will begin to populate the graphs.
 
 4.  Stop the prior `kubectl logs ...` command from Step 3, and run
 
-    kubectl exec -it -n ricxapp `kubectl get pod -n ricxapp -l app=ricxapp-scp-kpimon -o jsonpath='{.items[0].metadata.name}'` -- tail -F /opt/kpimon.log
+        kubectl exec -it -n ricxapp `kubectl get pod -n ricxapp -l app=ricxapp-scp-kpimon -o jsonpath='{.items[0].metadata.name}'` -- tail -F /opt/kpimon.log
 
     This will show the decoded metric reports as they arrive from the eNodeB.  We have not yet started a UE, so the reports will not initially have much content, and you'll see that `NumberOfActiveUEs` is `0`.  Note that the command is complicated because you must explicitly name a pod to `kubectl exec`, and pod names have random characters in them.  Thus, if you re-dploy the xApp, the pod name will change; hence the embedded command to find the pod name.
 
 5.  (if you already stopped the iperfs from the slicing demo, or skipped it) In a new ssh connection to `node-0`, send some simple traffic from the simulated UE:
 
-    sudo ip netns exec ue1 ping 192.168.0.1
+        sudo ip netns exec ue1 ping 192.168.0.1
 
     Now you should be seeing "real" performance metrics in the `kpimon` logfile tail process you started in Step 9.  You should see that `NumberOfActiveUEs` is now `1`, and you should see `PDCPBytes` numbers in both the uplink and downlink, for multiple QCI values.  Note that these byte counters are per-measurement period, and as of this time of writing, the measurement period the kpimon app requests is 1024ms.
 
@@ -667,22 +667,22 @@ this page, and data will begin to populate the graphs.
 
 1.  To run the demo again if you like, stop the EPC/eNodeB/UE via Ctrl-C.  Wait for the UE process to die before restarting the eNodeB.  You can redeploy xApps via
 
-    kubectl -n ricxapp rollout restart deployment ricxapp-nexran
-    kubectl -n ricxapp rollout restart deployment ricxapp-scp-kpimon
+        kubectl -n ricxapp rollout restart deployment ricxapp-nexran
+        kubectl -n ricxapp rollout restart deployment ricxapp-scp-kpimon
 
     (If you re-run the commands to access the log output of these containers too quickly, you will get a message that the container is still waiting to start.  Just run it until you see log output.)
 
 8.  To undeploy the xApps, you can run
 
-    . /local/repository/demo/get-env.sh
-    curl -L -X DELETE http://${APPMGR_HTTP}:8080/ric/v1/xapps/nexran
-    curl -L -X DELETE http://${APPMGR_HTTP}:8080/ric/v1/xapps/scp-kpimon
+        . /local/repository/demo/get-env.sh
+        curl -L -X DELETE http://${APPMGR_HTTP}:8080/ric/v1/xapps/nexran
+        curl -L -X DELETE http://${APPMGR_HTTP}:8080/ric/v1/xapps/scp-kpimon
 
 9.  To remove the xApp descriptors (e.g. to re-upload with new images or configuration):
 
-    . /local/repository/demo/get-env.sh
-    curl -L -X DELETE "http://${ONBOARDER_HTTP}:8080/api/charts/nexran/0.1.0"
-    curl -L -X DELETE "http://${ONBOARDER_HTTP}:8080/api/charts/scp-kpimon/1.0.1"
+        . /local/repository/demo/get-env.sh
+        curl -L -X DELETE "http://${ONBOARDER_HTTP}:8080/api/charts/nexran/0.1.0"
+        curl -L -X DELETE "http://${ONBOARDER_HTTP}:8080/api/charts/scp-kpimon/1.0.1"
 
 ### Restarting O-RAN (if necessary)
 
