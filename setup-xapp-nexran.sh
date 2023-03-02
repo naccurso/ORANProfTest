@@ -28,6 +28,9 @@ cd $OURDIR
 if [ -n "$BUILDORANSC" -a "$BUILDORANSC" = "1" ]; then
     git clone https://gitlab.flux.utah.edu/powderrenewpublic/nexran.git
     cd nexran
+    if [ $RICVERSION -ge $RICFRELEASE ]; then
+	git checkout e2ap-v2
+    fi
     # Build this image and place it in our local repo, so that the onboard
     # file can use this repo, and the kubernetes ecosystem can pick it up.
     $SUDO docker build . --tag $HEAD:5000/nexran:latest
@@ -38,7 +41,11 @@ if [ -n "$BUILDORANSC" -a "$BUILDORANSC" = "1" ]; then
 else
     NEXRAN_REGISTRY="gitlab.flux.utah.edu:4567"
     NEXRAN_NAME="powder-profiles/oran/nexran"
-    NEXRAN_TAG=latest
+    if [ $RICVERSION -ge $RICFRELEASE ]; then
+	NEXRAN_TAG="e2ap-v2"
+    else
+	NEXRAN_TAG=latest
+    fi
     $SUDO docker pull ${NEXRAN_REGISTRY}/${NEXRAN_NAME}:${NEXRAN_TAG}
 fi
 

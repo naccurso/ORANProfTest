@@ -32,6 +32,11 @@ if [ ! -e srslte-ric ]; then
     git clone https://gitlab.flux.utah.edu/powderrenewpublic/srslte-ric
 fi
 cd srslte-ric
+E2APVERSION="v01.01"
+if [ $RICVERSION -ge $RICFRELEASE ]; then
+    E2APVERSION="v02.03"
+    git checkout oran-ric-e2ap-v2
+fi
 mkdir -p build
 cd build
 cmake ../ \

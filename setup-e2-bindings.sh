@@ -25,6 +25,11 @@ if [ ! -e $OURDIR/E2AP-v01.01-generated-bindings.tar.gz ]; then
         https://www.emulab.net/downloads/johnsond/profile-oai-oran/E2AP-v01.01-generated-bindings.tar.gz
     tar -xzvf $OURDIR/E2AP-v01.01-generated-bindings.tar.gz -C $OURDIR
 fi
+if [ ! -e $OURDIR/E2AP-v02.03-generated-bindings.tar.gz ]; then
+    wget -O $OURDIR/E2AP-v02.03-generated-bindings.tar.gz \
+        https://www.emulab.net/downloads/johnsond/profile-oai-oran/E2AP-v02.03-generated-bindings.tar.gz
+    tar -xzvf $OURDIR/E2AP-v02.03-generated-bindings.tar.gz -C $OURDIR
+fi
 if [ ! -e $OURDIR/E2SM-KPM-ext-generated-bindings.tar.gz ]; then
     wget -O $OURDIR/E2SM-KPM-ext-generated-bindings.tar.gz \
         https://www.emulab.net/downloads/johnsond/profile-oai-oran/E2SM-KPM-ext-generated-bindings.tar.gz
