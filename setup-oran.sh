@@ -107,36 +107,35 @@ fi
 yq m --inplace --overwrite $OURDIR/oran/example_recipe.yaml \
     $OURDIR/oran/example_recipe.yaml-override
 
-helm version -c --short | grep -q v3
-HELM_IS_V3=$?
-if [ $HELM_IS_V3 -eq 0 ]; then
-    # Unfortunately, the helm setup is completely intermingled
-    # with the chart packaging... and chartmuseum APIs aren't used to upload;
-    # just copy files into place.  So we have to do everything manually.
-    # They also assume ownership of the helm local repo... we need to work
-    # around this eventually, e.g. to co-deploy oran and onap.
-    #
-    # So for now, we start up the helm servecm plugin ourselves.
+# Unfortunately, the helm setup is completely intermingled
+# with the chart packaging... and chartmuseum APIs aren't used to upload;
+# just copy files into place.  So we have to do everything manually.
+# They also assume ownership of the helm local repo... we need to work
+# around this eventually, e.g. to co-deploy oran and onap.
+#
+# So for now, we start up the helm servecm plugin ourselves.
 
-    # This becomes root on our behalf :-/
-    # NB: we need >= 0.13 so that we can get the version that
-    # can restrict bind to localhost.
-    #
-    # helm servecm will prompt us if helm is not already installed,
-    # so do this manually.
-    curl -o /tmp/get.sh https://raw.githubusercontent.com/helm/chartmuseum/main/scripts/get-chartmuseum
-    bash /tmp/get.sh
-    # This script is super fragile w.r.t. extracting version --
-    # vulnerable to github HTML format change.  Forcing a particular
-    # tag works around it.
-    if [ ! $? -eq 0 ]; then
-	bash /tmp/get.sh -v v0.13.1
-    fi
-    helm plugin install https://github.com/jdolitsky/helm-servecm
-    eval `helm env | grep HELM_REPOSITORY_CACHE`
-    nohup helm servecm --port=8879 --context-path=/charts --storage local --storage-local-rootdir $HELM_REPOSITORY_CACHE/local/ --listen-host localhost 2>&1 >/dev/null &
-    sleep 4
+# This becomes root on our behalf :-/
+# NB: we need >= 0.13 so that we can get the version that
+# can restrict bind to localhost.
+#
+# helm servecm will prompt us if helm is not already installed,
+# so do this manually.
+curl -o /tmp/get.sh https://raw.githubusercontent.com/helm/chartmuseum/main/scripts/get-chartmuseum
+bash /tmp/get.sh
+# This script is super fragile w.r.t. extracting version --
+# vulnerable to github HTML format change.  Forcing a particular
+# tag works around it.
+if [ ! $? -eq 0 ]; then
+    bash /tmp/get.sh -v v0.13.1
 fi
+helm plugin install https://github.com/jdolitsky/helm-servecm
+eval `helm env | grep HELM_REPOSITORY_CACHE`
+mkdir -p "${HELM_REPOSITORY_CACHE}/local/"
+nohup helm servecm --port=8879 --context-path=/charts --storage local \
+    --storage-local-rootdir $HELM_REPOSITORY_CACHE/local/ \
+    --listen-host localhost 2>&1 >/dev/null &
+sleep 4
 
 #
 # Performance hack: pre-pull image content if we might have a mirror.
@@ -153,6 +152,15 @@ if [ $? -eq 0 -a -e /local/repository/etc/osc-ric-cached-image-list-${RICRELEASE
     done &
     BGPULL=1
 fi
+
+#
+# Lifted from bin/install_common_templates_to_helm.sh .  We want to start
+# our own chartmuseum on localhost.
+#
+export COMMON_CHART_VERSION=`cat ric-common/Common-Template/helm/ric-common/Chart.yaml | grep version | awk '{print $2}'`
+helm package -d /tmp ric-common/Common-Template/helm/ric-common
+cp /tmp/ric-common-${COMMON_CHART_VERSION}.tgz "${HELM_REPOSITORY_CACHE}/local/"
+helm repo add local http://127.0.0.1:8879/charts
 
 cd bin \
     && ./install -f $OURDIR/oran/example_recipe.yaml
