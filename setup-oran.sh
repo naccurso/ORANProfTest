@@ -163,7 +163,7 @@ cp /tmp/ric-common-${COMMON_CHART_VERSION}.tgz "${HELM_REPOSITORY_CACHE}/local/"
 helm repo add local http://127.0.0.1:8879/charts
 
 cd bin \
-    && ./install -f $OURDIR/oran/example_recipe.yaml
+    && ./install -f $OURDIR/oran/example_recipe.yaml -c "influxdb jaegeradapter"
 
 for ns in ricplt ricinfra ricxapp ; do
     kubectl get pods -n $ns
