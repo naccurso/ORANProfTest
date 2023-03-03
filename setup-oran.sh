@@ -35,21 +35,11 @@ if [ -n "$BUILDORANSC" -a "$BUILDORANSC" = "1" ]; then
 fi
 
 #
-# Custom-build the O-RAN components we might need.  Bronze release is
-# pretty much ok, but there are two components that need upgrades from
-# master:
-#
-# * e2term must not attempt to decode the E2SMs (it only supported
-#   E2SM-gNB-NRT when it was decoding them)
-# * submgr must not decode the E2SMs.
-#
-# cherry is ok too, except we still need a 4G enb e2 fix.
+# Custom-build the O-RAN components we might need.
 #
 
 E2TERM_REGISTRY=${HEAD}.cluster.local:5000
-if [ $RICVERSION -eq $RICCHERRY ]; then
-    E2TERM_TAG="5.4.8-powder"
-elif [ $RICVERSION -eq $RICDAWN ]; then
+if [ $RICVERSION -eq $RICDAWN ]; then
     E2TERM_TAG="5.4.9-powder"
 elif [ $RICVERSION -eq $RICERELEASE ]; then
     E2TERM_TAG="5.5.0-powder"
@@ -72,36 +62,24 @@ else
     $SUDO docker pull ${E2TERM_REGISTRY}/${E2TERM_NAME}:${E2TERM_TAG}
 fi
 
-if [ $RICVERSION -eq $RICBRONZE ]; then
-    git clone https://gerrit.o-ran-sc.org/r/ric-plt/submgr
-    cd submgr
-    git checkout f0d95262aba5c1d3770bd173d8ce054334b8a162
-    $SUDO docker build . -t ${HEAD}.cluster.local:5000/submgr:0.5.0
-    $SUDO docker push ${HEAD}.cluster.local:5000/submgr:0.5.0
-    cd ..
-fi
-
 #
 # Deploy the platform.
 #
-DEPREPO=http://gerrit.o-ran-sc.org/r/it/dep
-DEPBRANCH=$RICRELEASE
-if [ $RICVERSION -eq $RICCHERRY ]; then
-    DEPREPO=https://gitlab.flux.utah.edu/powderrenewpublic/dep
-    DEPBRANCH=cherry-powder
-elif [ $RICVERSION -eq $RICDAWN ]; then
-    DEPREPO=https://gitlab.flux.utah.edu/powderrenewpublic/dep
-    DEPBRANCH=dawn-powder
+RICDEPREPO=https://gerrit.o-ran-sc.org/r/ric-plt/ric-dep
+RICDEPBRANCH=$RICRELEASE
+if [ $RICVERSION -eq $RICDAWN ]; then
+    RICDEPREPO=https://gitlab.flux.utah.edu/powderrenewpublic/ric-dep
+    RICDEPBRANCH=dawn-powder
 fi
-git clone $DEPREPO -b $DEPBRANCH
-cd dep
+git clone $RICDEPREPO -b $RICDEPBRANCH
+cd ric-dep
 git submodule update --init --recursive --remote
 git submodule update
 
 helm init --client-only --stable-repo-url "https://charts.helm.sh/stable"
 
-if [ -e ric-dep/RECIPE_EXAMPLE/example_recipe_oran_${RICSHORTRELEASE}_release.yaml ]; then
-    cp ric-dep/RECIPE_EXAMPLE/example_recipe_oran_${RICSHORTRELEASE}_release.yaml \
+if [ -e RECIPE_EXAMPLE/example_recipe_oran_${RICSHORTRELEASE}_release.yaml ]; then
+    cp RECIPE_EXAMPLE/example_recipe_oran_${RICSHORTRELEASE}_release.yaml \
        $OURDIR/oran/example_recipe.yaml
 else
     cp RECIPE_EXAMPLE/PLATFORM/example_recipe.yaml $OURDIR/oran
@@ -114,25 +92,7 @@ e2term:
       name: "${E2TERM_NAME}"
       tag: "${E2TERM_TAG}"
 EOF
-if [ $RICVERSION -eq $RICBRONZE ]; then
-    cat <<EOF >>$OURDIR/oran/example_recipe.yaml-override
-submgr:
-  image:
-    registry: "${HEAD}.cluster.local:5000"
-    name: submgr
-    tag: 0.5.0
-EOF
-elif [ $RICVERSION -eq $RICCHERRY ]; then
-    # Cherry release of `dep` includes old broken submgr
-    cat <<EOF >>$OURDIR/oran/example_recipe.yaml-override
-submgr:
-  image:
-    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
-    name: ric-plt-submgr
-    tag: 0.5.8
-EOF
-fi
-if [ $RICVERSION -eq $RICCHERRY -o $RICVERSION -eq $RICDAWN ]; then
+if [ $RICVERSION -eq $RICDAWN ]; then
     # appmgr > 0.4.3 isn't really released yet.
     cat <<EOF >>$OURDIR/oran/example_recipe.yaml-override
 appmgr:
@@ -195,7 +155,7 @@ if [ $? -eq 0 -a -e /local/repository/etc/osc-ric-cached-image-list-${RICRELEASE
 fi
 
 cd bin \
-    && ./deploy-ric-platform -f $OURDIR/oran/example_recipe.yaml
+    && ./install -f $OURDIR/oran/example_recipe.yaml
 
 for ns in ricplt ricinfra ricxapp ; do
     kubectl get pods -n $ns
