@@ -154,6 +154,14 @@ if [ $? -eq 0 -a -e /local/repository/etc/osc-ric-cached-image-list-${RICRELEASE
 fi
 
 #
+# "Modern" ric-dep repos have the common chart, but if not, just grab it from the it/dep repo.
+#
+if [ ! -e ric-common/Common-Template/helm/ric-common/Chart.yaml ]; then
+    git clone --single-branch "https://gerrit.o-ran-sc.org/r/it/dep" ../dep
+    cp -pRv ../dep/ric-common .
+fi
+
+#
 # Lifted from bin/install_common_templates_to_helm.sh .  We want to start
 # our own chartmuseum on localhost.
 #
