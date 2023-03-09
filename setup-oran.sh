@@ -199,7 +199,7 @@ if [ ! -e $OURDIR/venv/dms/bin/activate ]; then
     cd $OURDIR/venv
     virtualenv --python /usr/bin/python3 dms
     . $OURDIR/venv/dms/bin/activate \
-	&& cd $OURDIR/appmgr/xapp_orchestrater/dev/xapp_onboarder \
+	&& cd $OURDIR/oran/appmgr/xapp_orchestrater/dev/xapp_onboarder \
 	&& pip3 install . \
 	&& deactivate
     if [ ! -e $OURDIR/oran/dms_cli ]; then
