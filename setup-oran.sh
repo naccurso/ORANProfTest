@@ -170,6 +170,10 @@ helm package -d /tmp ric-common/Common-Template/helm/ric-common
 cp /tmp/ric-common-${COMMON_CHART_VERSION}.tgz "${HELM_REPOSITORY_CACHE}/local/"
 helm repo add local http://127.0.0.1:8879/charts
 
+if [ -n "$DONFS" -a "$DONFS" = "1" ]; then
+    sed -ie 's/^IS_INFLUX_PERSIST=.*$/IS_INFLUX_PERSIST="nfs-client"/' bin/install
+fi
+
 cd bin \
     && ./install -f $OURDIR/oran/example_recipe.yaml -c "influxdb jaegeradapter"
 
