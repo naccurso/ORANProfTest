@@ -232,6 +232,18 @@ EOF
     fi
 fi
 
+# Grab influxdb credentials
+INFLUXDB_IP=`kubectl get svc -n ricplt --field-selector metadata.name=ricplt-influxdb -o jsonpath='{.items[0].spec.clusterIP}'`
+INFLUXDB_USER=`kubectl -n ricplt get secrets ricplt-influxdb-auth -o jsonpath="{.data.influxdb-user}" | base64 --decode`
+INFLUXDB_PASS=`kubectl -n ricplt get secrets ricplt-influxdb-auth -o jsonpath="{.data.influxdb-password}" | base64 --decode`
+IARGS=""
+if [ -n "$INFLUXDB_USER" ]; then
+    IARGS="$IARGS -username '$INFLUXDB_USER'"
+fi
+if [ -n "$INFLUXDB_PASS" ]; then
+    IARGS="$IARGS -password '$INFLUXDB_PASS'"
+fi
+
 # Install Grafana
 MIP=`getnodeip $HEAD $MGMTLAN`
 $SUDO cp -p /local/repository/etc/nexran-grafana-dashboard.json \
@@ -259,8 +271,8 @@ datasources:
         type: influxdb
         uid: OzcR1Jo4k
         url: "http://ricplt-influxdb:8086"
-        password:
-        user:
+        password: "$INFLUXDB_PASS"
+        user: "$INFLUXDB_USER"
         database: nexran
         basicAuth:
         basicAuthUser:
@@ -281,8 +293,8 @@ curl -X POST -H 'Content-type: application/json' \
     http://`cat /var/emulab/boot/myip`:3003/api/dashboards/import
 
 maybe_install_packages influxdb-client
-INFLUXDB_IP=`kubectl get svc -n ricplt --field-selector metadata.name=ricplt-influxdb -o jsonpath='{.items[0].spec.clusterIP}'`
-echo create database nexran | influx -host $INFLUXDB_IP
+
+echo create database nexran | influx -host $INFLUXDB_IP $IARGS
 
 if [ $BGPULL -eq 1 ]; then
     wait
