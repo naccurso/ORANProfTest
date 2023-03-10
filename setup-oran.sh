@@ -45,6 +45,8 @@ elif [ $RICVERSION -eq $RICERELEASE ]; then
     E2TERM_TAG="5.5.0-powder"
 elif [ $RICVERSION -eq $RICFRELEASE ]; then
     E2TERM_TAG="6.0.0-powder"
+elif [ $RICVERSION -eq $RICGRELEASE ]; then
+    E2TERM_TAG="6.0.1-powder"
 fi
 if [ -n "$BUILDORANSC" -a "$BUILDORANSC" = "1" ]; then
     E2TERM_NAME="e2term"
