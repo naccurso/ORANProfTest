@@ -5,7 +5,14 @@ if [ -z "$SLEEPINT" ]; then
     SLEEPINT=4
 fi
 
-export NEXRAN_XAPP=`kubectl get svc -n ricxapp --field-selector metadata.name=service-ricxapp-nexran-rmr -o jsonpath='{.items[0].spec.clusterIP}'`
+export NEXRAN_XAPP=`kubectl get svc -n ricxapp --field-selector metadata.name=service-ricxapp-nexran-nbi -o jsonpath='{.items[0].spec.clusterIP}'`
+if [ -z "$NEXRAN_XAPP" ]; then
+    export NEXRAN_XAPP=`kubectl get svc -n ricxapp --field-selector metadata.name=service-ricxapp-nexran-rmr -o jsonpath='{.items[0].spec.clusterIP}'`
+fi
+if [ -z "$NEXRAN_XAPP" ]; then
+    echo "ERROR: failed to find nexran nbi service; aborting!"
+    exit 1
+fi
 
 echo NEXRAN_XAPP=$NEXRAN_XAPP ; echo
 
@@ -19,9 +26,16 @@ curl -i -X GET http://${NEXRAN_XAPP}:8000/v1/ues ; echo ; echo
 sleep $SLEEPINT
 
 echo "Creating NodeB (id=1):" ; echo
-curl -i -X POST -H "Content-type: application/json" -d '{"type":"eNB","id":411,"mcc":"001","mnc":"01"}' http://${NEXRAN_XAPP}:8000/v1/nodebs ; echo ; echo
+OUTPUT=`curl -X POST -H "Content-type: application/json" -d '{"type":"eNB","id":411,"mcc":"001","mnc":"01"}' http://${NEXRAN_XAPP}:8000/v1/nodebs`
+echo $OUTPUT
+NBNAME=`echo $OUTPUT | jq -r '.name'`
 echo Listing NodeBs: ; echo
 curl -i -X GET http://${NEXRAN_XAPP}:8000/v1/nodebs ; echo ; echo
+
+if [ -z "$OUTPUT" -o -z "$NBNAME" ]; then
+    echo "ERROR: failed to create NodeB; aborting"
+    exit 1
+fi
 
 sleep $SLEEPINT
 
@@ -40,16 +54,16 @@ curl -i -X GET http://${NEXRAN_XAPP}:8000/v1/slices ; echo ; echo
 sleep $SLEEPINT
 
 echo "Binding Slice to NodeB (name=fast):" ; echo
-curl -i -X POST http://${NEXRAN_XAPP}:8000/v1/nodebs/enB_macro_001_001_0019b0/slices/fast ; echo ; echo
-echo "Getting NodeB (name=enB_macro_001_001_0019b0):" ; echo
-curl -i -X GET http://${NEXRAN_XAPP}:8000/v1/nodebs/enB_macro_001_001_0019b0 ; echo ; echo
+curl -i -X POST http://${NEXRAN_XAPP}:8000/v1/nodebs/${NBNAME}/slices/fast ; echo ; echo
+echo "Getting NodeB (name=${NBNAME}):" ; echo
+curl -i -X GET http://${NEXRAN_XAPP}:8000/v1/nodebs/${NBNAME} ; echo ; echo
 
 sleep $SLEEPINT
 
 echo "Binding Slice to NodeB (name=slow):" ; echo
-curl -i -X POST http://${NEXRAN_XAPP}:8000/v1/nodebs/enB_macro_001_001_0019b0/slices/slow ; echo ; echo
-echo "Getting NodeB (name=enB_macro_001_001_0019b0):" ; echo
-curl -i -X GET http://${NEXRAN_XAPP}:8000/v1/nodebs/enB_macro_001_001_0019b0 ; echo ; echo
+curl -i -X POST http://${NEXRAN_XAPP}:8000/v1/nodebs/${NBNAME}/slices/slow ; echo ; echo
+echo "Getting NodeB (name=${NBNAME}):" ; echo
+curl -i -X GET http://${NEXRAN_XAPP}:8000/v1/nodebs/${NBNAME} ; echo ; echo
 
 sleep $SLEEPINT
 

@@ -174,13 +174,13 @@ if [ -n "$DONFS" -a "$DONFS" = "1" ]; then
     sed -i -e 's/^IS_INFLUX_PERSIST=.*$/IS_INFLUX_PERSIST="nfs-client"/' bin/install
 fi
 
-EXTRACOMPONENTS=
 if [ $RICVERSION -gt $RICDAWN ]; then
-    EXTRACOMPONENTS='-c "influxdb jaegeradapter"'
+    cd bin \
+	&& ./install -f $OURDIR/oran/example_recipe.yaml -c "influxdb jaegeradapter"
+else
+    cd bin \
+	&& ./install -f $OURDIR/oran/example_recipe.yaml
 fi
-
-cd bin \
-    && ./install -f $OURDIR/oran/example_recipe.yaml $EXTRACOMPONENTS
 
 for ns in ricplt ricinfra ricxapp ; do
     kubectl get pods -n $ns
