@@ -171,7 +171,7 @@ cp /tmp/ric-common-${COMMON_CHART_VERSION}.tgz "${HELM_REPOSITORY_CACHE}/local/"
 helm repo add local http://127.0.0.1:8879/charts
 
 if [ -n "$DONFS" -a "$DONFS" = "1" ]; then
-    sed -ie 's/^IS_INFLUX_PERSIST=.*$/IS_INFLUX_PERSIST="nfs-client"/' bin/install
+    sed -i -e 's/^IS_INFLUX_PERSIST=.*$/IS_INFLUX_PERSIST="nfs-client"/' bin/install
 fi
 
 EXTRACOMPONENTS=
@@ -278,7 +278,7 @@ datasources:
         url: "http://ricplt-influxdb:8086"
         password: "$INFLUXDB_PASS"
         user: "$INFLUXDB_USER"
-        database: nexran
+        database: "nexran"
         basicAuth:
         basicAuthUser:
         basicAuthPassword:

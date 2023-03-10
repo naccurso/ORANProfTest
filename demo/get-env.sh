@@ -16,7 +16,7 @@ if [ -n "$INFLUXDB_USER" ]; then
     fi
     IARGS="${IARGS}@"
 fi
-export INFLUXDB_URL=`http://${IARGS}${INFLUXDB_IP}:8086/`
+export INFLUXDB_URL="http://${IARGS}${INFLUXDB_IP}:8086/"
 export DBAAS_IP=`kubectl -n ricplt get pods/statefulset-ricplt-dbaas-server-0 -o jsonpath='{.status.podIP}'`
 
 echo E2TERM_SCTP=$E2TERM_SCTP

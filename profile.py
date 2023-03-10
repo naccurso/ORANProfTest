@@ -586,7 +586,7 @@ this page, and data will begin to populate the graphs.
         . /local/repository/demo/get-env.sh
         curl -L -X PUT http://$NEXRAN_XAPP:8000/v1/appconfig \
             -H "Content-type: application/json" \
-            -d '{"kpm_interval_index":18,"influxdb_url":"http://'$INFLUXDB_IP':8086?db=nexran"}'
+            -d '{"kpm_interval_index":18,"influxdb_url":"'$INFLUXDB_URL'?db=nexran"}'
 
 5.  In a new ssh connection to `node-0`, run an iperf server *in the UE's network namespace* (so that you can observe the effects of dynamic slicing in the downlink:
 
