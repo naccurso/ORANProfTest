@@ -11,6 +11,8 @@ fi
 
 logtstart "xapp-nexran"
 
+maybe_install_packages jq
+
 # kubectl get pods -n ricplt  -l app=ricplt-e2term -o jsonpath='{..status.podIP}'
 KONG_PROXY=`kubectl get svc -n ricplt -l app.kubernetes.io/name=kong -o jsonpath='{.items[0].spec.clusterIP}'`
 APPMGR_HTTP=`kubectl get svc -n ricplt --field-selector metadata.name=service-ricplt-appmgr-http -o jsonpath='{.items[0].spec.clusterIP}'`
@@ -24,84 +26,62 @@ curl --location --request GET "http://$KONG_PROXY:32080/onboard/api/v1/charts"
 # we handle both those things.
 #
 cd $OURDIR
+git clone https://gitlab.flux.utah.edu/powderrenewpublic/nexran.git
+
+if [ $RICVERSION -lt $RICFRELEASE ]; then
+    NEXRAN_TAG="e2ap-v1"
+    NEXRAN_CONTAINER_NAME="nexran-xapp"
+else
+    NEXRAN_TAG=latest
+    NEXRAN_CONTAINER_NAME="nexran"
+fi
 
 if [ -n "$BUILDORANSC" -a "$BUILDORANSC" = "1" ]; then
-    git clone https://gitlab.flux.utah.edu/powderrenewpublic/nexran.git
     cd nexran
-    if [ $RICVERSION -ge $RICFRELEASE ]; then
-	git checkout e2ap-v2
+    if [ $RICVERSION -lt $RICFRELEASE ]; then
+	git checkout e2ap-v1
     fi
     # Build this image and place it in our local repo, so that the onboard
     # file can use this repo, and the kubernetes ecosystem can pick it up.
-    $SUDO docker build . --tag $HEAD:5000/nexran:latest
-    $SUDO docker push $HEAD:5000/nexran:latest
+    $SUDO docker build . --tag $HEAD:5000/nexran:$NEXRAN_TAG
+    $SUDO docker push $HEAD:5000/nexran:$NEXRAN_TAG
     NEXRAN_REGISTRY=${HEAD}.cluster.local:5000
     NEXRAN_NAME="nexran"
-    NEXRAN_TAG=latest
 else
     NEXRAN_REGISTRY="gitlab.flux.utah.edu:4567"
     NEXRAN_NAME="powder-profiles/oran/nexran"
-    if [ $RICVERSION -ge $RICFRELEASE ]; then
-	NEXRAN_TAG="e2ap-v2"
-    else
-	NEXRAN_TAG=latest
-    fi
     $SUDO docker pull ${NEXRAN_REGISTRY}/${NEXRAN_NAME}:${NEXRAN_TAG}
 fi
 
 
 MIP=`getnodeip $HEAD $MGMTLAN`
 
-cat <<EOF >$WWWPUB/nexran-config-file.json
+cp -p $OURDIR/nexran/etc/config-file.json $WWWPUB/nexran-config-file.json
+cat <<EOF >$WWWPUB/nexran-config-file.json.mod
 {
-    "json_url": "nexran",
-    "xapp_name": "nexran",
-    "version": "0.1.0",
     "containers": [
-        {
-            "name": "nexran-xapp",
-            "image": {
-                "registry": "${NEXRAN_REGISTRY}",
-                "name": "${NEXRAN_NAME}",
-                "tag": "${NEXRAN_TAG}"
-            }
-        }
-    ],
-    "messaging": {
-        "ports": [
-            {
-                "name": "rmr-data",
-                "container": "nexran-xapp",
-                "port": 4560,
-                "rxMessages": [ "RIC_SUB_RESP", "RIC_SUB_FAILURE", "RIC_INDICATION", "RIC_SUB_DEL_RESP", "RIC_SUB_DEL_FAILURE", "RIC_CONTROL_ACK", "RIC_CONTROL_FAILURE" ],
-                "txMessages": [ "RIC_SUB_REQ", "RIC_SUB_DEL_REQ", "RIC_CONTROL_REQ" ],
-                "policies": [1],
-                "description": "rmr receive data port for nexran-xapp"
-            },
-            {
-                "name": "rmr-route",
-                "container": "nexran-xapp",
-                "port": 4561,
-                "description": "rmr route port for nexran-xapp"
-            },
-            {
-                "name": "nbi",
-                "container": "nexran-xapp",
-                "port": 8000,
-                "description": "RESTful http northbound interface nexran-xapp"
-            }
-        ]
-    },
-    "rmr": {
-        "protPort": "tcp:4560",
-        "maxSize": 2072,
-        "numWorkers": 1,
-        "txMessages": [ "RIC_SUB_REQ", "RIC_SUB_DEL_REQ", "RIC_CONTROL_REQ" ],
-        "rxMessages": [ "RIC_SUB_RESP", "RIC_SUB_FAILURE", "RIC_INDICATION", "RIC_SUB_DEL_RESP", "RIC_SUB_DEL_FAILURE", "RIC_CONTROL_ACK", "RIC_CONTROL_FAILURE" ],
-	"policies": [1]
-    }
+	{
+	    "image": {
+		"registry": "$NEXRAN_REGISTRY",
+		"name": "$NEXRAN_NAME",
+		"tag": "$NEXRAN_TAG"
+	    },
+	    "name": "$NEXRAN_CONTAINER_NAME"
+	}
+    ]
 }
 EOF
+jq -s 'reduce .[] as $item ({}; . * $item)' \
+    $WWWPUB/nexran-config-file.json \
+    $WWWPUB/nexran-config-file.json.mod \
+    > $WWWPUB/nexran-config-file.json.new
+if [ -s $WWWPUB/nexran-config-file.json.new ]; then
+    mv $WWWPUB/nexran-config-file.json.new $WWWPUB/nexran-config-file.json
+else
+    echo "ERROR: could not merge nexran image values into config-file.json; aborting!"
+    exit 1
+fi
+
 cat <<EOF >$WWWPUB/nexran-onboard.url
 {"config-file.json_url":"http://$MIP:7998/nexran-config-file.json"}
 EOF

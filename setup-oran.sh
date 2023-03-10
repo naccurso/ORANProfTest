@@ -35,21 +35,11 @@ if [ -n "$BUILDORANSC" -a "$BUILDORANSC" = "1" ]; then
 fi
 
 #
-# Custom-build the O-RAN components we might need.  Bronze release is
-# pretty much ok, but there are two components that need upgrades from
-# master:
-#
-# * e2term must not attempt to decode the E2SMs (it only supported
-#   E2SM-gNB-NRT when it was decoding them)
-# * submgr must not decode the E2SMs.
-#
-# cherry is ok too, except we still need a 4G enb e2 fix.
+# Custom-build the O-RAN components we might need.
 #
 
 E2TERM_REGISTRY=${HEAD}.cluster.local:5000
-if [ $RICVERSION -eq $RICCHERRY ]; then
-    E2TERM_TAG="5.4.8-powder"
-elif [ $RICVERSION -eq $RICDAWN ]; then
+if [ $RICVERSION -eq $RICDAWN ]; then
     E2TERM_TAG="5.4.9-powder"
 elif [ $RICVERSION -eq $RICERELEASE ]; then
     E2TERM_TAG="5.5.0-powder"
@@ -72,36 +62,24 @@ else
     $SUDO docker pull ${E2TERM_REGISTRY}/${E2TERM_NAME}:${E2TERM_TAG}
 fi
 
-if [ $RICVERSION -eq $RICBRONZE ]; then
-    git clone https://gerrit.o-ran-sc.org/r/ric-plt/submgr
-    cd submgr
-    git checkout f0d95262aba5c1d3770bd173d8ce054334b8a162
-    $SUDO docker build . -t ${HEAD}.cluster.local:5000/submgr:0.5.0
-    $SUDO docker push ${HEAD}.cluster.local:5000/submgr:0.5.0
-    cd ..
-fi
-
 #
 # Deploy the platform.
 #
-DEPREPO=http://gerrit.o-ran-sc.org/r/it/dep
-DEPBRANCH=$RICRELEASE
-if [ $RICVERSION -eq $RICCHERRY ]; then
-    DEPREPO=https://gitlab.flux.utah.edu/powderrenewpublic/dep
-    DEPBRANCH=cherry-powder
-elif [ $RICVERSION -eq $RICDAWN ]; then
-    DEPREPO=https://gitlab.flux.utah.edu/powderrenewpublic/dep
-    DEPBRANCH=dawn-powder
+RICDEPREPO=https://gerrit.o-ran-sc.org/r/ric-plt/ric-dep
+RICDEPBRANCH=$RICRELEASE
+if [ $RICVERSION -eq $RICDAWN ]; then
+    RICDEPREPO=https://gitlab.flux.utah.edu/powderrenewpublic/ric-dep
+    RICDEPBRANCH=dawn-powder
 fi
-git clone $DEPREPO -b $DEPBRANCH
-cd dep
+git clone $RICDEPREPO -b $RICDEPBRANCH
+cd ric-dep
 git submodule update --init --recursive --remote
 git submodule update
 
 helm init --client-only --stable-repo-url "https://charts.helm.sh/stable"
 
-if [ -e ric-dep/RECIPE_EXAMPLE/example_recipe_oran_${RICSHORTRELEASE}_release.yaml ]; then
-    cp ric-dep/RECIPE_EXAMPLE/example_recipe_oran_${RICSHORTRELEASE}_release.yaml \
+if [ -e RECIPE_EXAMPLE/example_recipe_oran_${RICSHORTRELEASE}_release.yaml ]; then
+    cp RECIPE_EXAMPLE/example_recipe_oran_${RICSHORTRELEASE}_release.yaml \
        $OURDIR/oran/example_recipe.yaml
 else
     cp RECIPE_EXAMPLE/PLATFORM/example_recipe.yaml $OURDIR/oran
@@ -114,25 +92,7 @@ e2term:
       name: "${E2TERM_NAME}"
       tag: "${E2TERM_TAG}"
 EOF
-if [ $RICVERSION -eq $RICBRONZE ]; then
-    cat <<EOF >>$OURDIR/oran/example_recipe.yaml-override
-submgr:
-  image:
-    registry: "${HEAD}.cluster.local:5000"
-    name: submgr
-    tag: 0.5.0
-EOF
-elif [ $RICVERSION -eq $RICCHERRY ]; then
-    # Cherry release of `dep` includes old broken submgr
-    cat <<EOF >>$OURDIR/oran/example_recipe.yaml-override
-submgr:
-  image:
-    registry: "nexus3.o-ran-sc.org:10002/o-ran-sc"
-    name: ric-plt-submgr
-    tag: 0.5.8
-EOF
-fi
-if [ $RICVERSION -eq $RICCHERRY -o $RICVERSION -eq $RICDAWN ]; then
+if [ $RICVERSION -eq $RICDAWN ]; then
     # appmgr > 0.4.3 isn't really released yet.
     cat <<EOF >>$OURDIR/oran/example_recipe.yaml-override
 appmgr:
@@ -147,36 +107,35 @@ fi
 yq m --inplace --overwrite $OURDIR/oran/example_recipe.yaml \
     $OURDIR/oran/example_recipe.yaml-override
 
-helm version -c --short | grep -q v3
-HELM_IS_V3=$?
-if [ $HELM_IS_V3 -eq 0 ]; then
-    # Unfortunately, the helm setup is completely intermingled
-    # with the chart packaging... and chartmuseum APIs aren't used to upload;
-    # just copy files into place.  So we have to do everything manually.
-    # They also assume ownership of the helm local repo... we need to work
-    # around this eventually, e.g. to co-deploy oran and onap.
-    #
-    # So for now, we start up the helm servecm plugin ourselves.
+# Unfortunately, the helm setup is completely intermingled
+# with the chart packaging... and chartmuseum APIs aren't used to upload;
+# just copy files into place.  So we have to do everything manually.
+# They also assume ownership of the helm local repo... we need to work
+# around this eventually, e.g. to co-deploy oran and onap.
+#
+# So for now, we start up the helm servecm plugin ourselves.
 
-    # This becomes root on our behalf :-/
-    # NB: we need >= 0.13 so that we can get the version that
-    # can restrict bind to localhost.
-    #
-    # helm servecm will prompt us if helm is not already installed,
-    # so do this manually.
-    curl -o /tmp/get.sh https://raw.githubusercontent.com/helm/chartmuseum/main/scripts/get-chartmuseum
-    bash /tmp/get.sh
-    # This script is super fragile w.r.t. extracting version --
-    # vulnerable to github HTML format change.  Forcing a particular
-    # tag works around it.
-    if [ ! $? -eq 0 ]; then
-	bash /tmp/get.sh -v v0.13.1
-    fi
-    helm plugin install https://github.com/jdolitsky/helm-servecm
-    eval `helm env | grep HELM_REPOSITORY_CACHE`
-    nohup helm servecm --port=8879 --context-path=/charts --storage local --storage-local-rootdir $HELM_REPOSITORY_CACHE/local/ --listen-host localhost 2>&1 >/dev/null &
-    sleep 4
+# This becomes root on our behalf :-/
+# NB: we need >= 0.13 so that we can get the version that
+# can restrict bind to localhost.
+#
+# helm servecm will prompt us if helm is not already installed,
+# so do this manually.
+curl -o /tmp/get.sh https://raw.githubusercontent.com/helm/chartmuseum/main/scripts/get-chartmuseum
+bash /tmp/get.sh
+# This script is super fragile w.r.t. extracting version --
+# vulnerable to github HTML format change.  Forcing a particular
+# tag works around it.
+if [ ! $? -eq 0 ]; then
+    bash /tmp/get.sh -v v0.13.1
 fi
+helm plugin install https://github.com/jdolitsky/helm-servecm
+eval `helm env | grep HELM_REPOSITORY_CACHE`
+mkdir -p "${HELM_REPOSITORY_CACHE}/local/"
+nohup helm servecm --port=8879 --context-path=/charts --storage local \
+    --storage-local-rootdir $HELM_REPOSITORY_CACHE/local/ \
+    --listen-host localhost 2>&1 >/dev/null &
+sleep 4
 
 #
 # Performance hack: pre-pull image content if we might have a mirror.
@@ -194,8 +153,34 @@ if [ $? -eq 0 -a -e /local/repository/etc/osc-ric-cached-image-list-${RICRELEASE
     BGPULL=1
 fi
 
-cd bin \
-    && ./deploy-ric-platform -f $OURDIR/oran/example_recipe.yaml
+#
+# "Modern" ric-dep repos have the common chart, but if not, just grab it from the it/dep repo.
+#
+if [ ! -e ric-common/Common-Template/helm/ric-common/Chart.yaml ]; then
+    git clone --single-branch "https://gerrit.o-ran-sc.org/r/it/dep" ../dep
+    cp -pRv ../dep/ric-common .
+fi
+
+#
+# Lifted from bin/install_common_templates_to_helm.sh .  We want to start
+# our own chartmuseum on localhost.
+#
+export COMMON_CHART_VERSION=`cat ric-common/Common-Template/helm/ric-common/Chart.yaml | grep version | awk '{print $2}'`
+helm package -d /tmp ric-common/Common-Template/helm/ric-common
+cp /tmp/ric-common-${COMMON_CHART_VERSION}.tgz "${HELM_REPOSITORY_CACHE}/local/"
+helm repo add local http://127.0.0.1:8879/charts
+
+if [ -n "$DONFS" -a "$DONFS" = "1" ]; then
+    sed -i -e 's/^IS_INFLUX_PERSIST=.*$/IS_INFLUX_PERSIST="nfs-client"/' bin/install
+fi
+
+if [ $RICVERSION -gt $RICDAWN ]; then
+    cd bin \
+	&& ./install -f $OURDIR/oran/example_recipe.yaml -c "influxdb jaegeradapter"
+else
+    cd bin \
+	&& ./install -f $OURDIR/oran/example_recipe.yaml
+fi
 
 for ns in ricplt ricinfra ricxapp ; do
     kubectl get pods -n $ns
@@ -231,7 +216,7 @@ if [ ! -e $OURDIR/venv/dms/bin/activate ]; then
     cd $OURDIR/venv
     virtualenv --python /usr/bin/python3 dms
     . $OURDIR/venv/dms/bin/activate \
-	&& cd $OURDIR/appmgr/xapp_orchestrater/dev/xapp_onboarder \
+	&& cd $OURDIR/oran/appmgr/xapp_orchestrater/dev/xapp_onboarder \
 	&& pip3 install . \
 	&& deactivate
     if [ ! -e $OURDIR/oran/dms_cli ]; then
@@ -250,6 +235,18 @@ EOF
 	cp -p $OURDIR/oran/appmgr/xapp_orchestrater/dev/docs/xapp_onboarder/guide/embedded-schema.json \
 	    $OURDIR/oran/xapp-embedded-schema.json
     fi
+fi
+
+# Grab influxdb credentials
+INFLUXDB_IP=`kubectl get svc -n ricplt --field-selector metadata.name=ricplt-influxdb -o jsonpath='{.items[0].spec.clusterIP}'`
+INFLUXDB_USER=`kubectl -n ricplt get secrets ricplt-influxdb-auth -o jsonpath="{.data.influxdb-user}" | base64 --decode`
+INFLUXDB_PASS=`kubectl -n ricplt get secrets ricplt-influxdb-auth -o jsonpath="{.data.influxdb-password}" | base64 --decode`
+IARGS=""
+if [ -n "$INFLUXDB_USER" ]; then
+    IARGS="$IARGS -username '$INFLUXDB_USER'"
+fi
+if [ -n "$INFLUXDB_PASS" ]; then
+    IARGS="$IARGS -password '$INFLUXDB_PASS'"
 fi
 
 # Install Grafana
@@ -279,9 +276,9 @@ datasources:
         type: influxdb
         uid: OzcR1Jo4k
         url: "http://ricplt-influxdb:8086"
-        password:
-        user:
-        database: nexran
+        password: "$INFLUXDB_PASS"
+        user: "$INFLUXDB_USER"
+        database: "nexran"
         basicAuth:
         basicAuthUser:
         basicAuthPassword:
@@ -301,8 +298,8 @@ curl -X POST -H 'Content-type: application/json' \
     http://`cat /var/emulab/boot/myip`:3003/api/dashboards/import
 
 maybe_install_packages influxdb-client
-INFLUXDB_IP=`kubectl get svc -n ricplt --field-selector metadata.name=ricplt-influxdb -o jsonpath='{.items[0].spec.clusterIP}'`
-echo create database nexran | influx -host $INFLUXDB_IP
+
+echo create database nexran | influx -host $INFLUXDB_IP $IARGS
 
 if [ $BGPULL -eq 1 ]; then
     wait
