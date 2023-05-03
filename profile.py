@@ -888,10 +888,6 @@ rspec.addResource(adminPassResource)
 # Grab a few public IP addresses.
 #
 apool = IG.AddressPool("node-0",params.publicIPCount)
-try:
-    apool.Site("1")
-except:
-    pass
 rspec.addResource(apool)
 
 pc.printRequestRSpec(rspec)
