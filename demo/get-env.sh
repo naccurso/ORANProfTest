@@ -8,9 +8,9 @@ export NEXRAN_XAPP=`kubectl get svc -n ricxapp --field-selector metadata.name=se
 if [ -z "$NEXRAN_XAPP" ]; then
     export NEXRAN_XAPP=`kubectl get svc -n ricxapp --field-selector metadata.name=service-ricxapp-nexran-rmr -o jsonpath='{.items[0].spec.clusterIP}'`
 fi
-export INFLUXDB_IP=`kubectl get svc -n ricplt --field-selector metadata.name=ricplt-influxdb -o jsonpath='{.items[0].spec.clusterIP}'`
-INFLUXDB_USER=`kubectl -n ricplt get secrets ricplt-influxdb-auth -o jsonpath="{.data.influxdb-user}" | base64 --decode`
-INFLUXDB_PASS=`kubectl -n ricplt get secrets ricplt-influxdb-auth -o jsonpath="{.data.influxdb-password}" | base64 --decode`
+export INFLUXDB_IP=`kubectl get svc -n ricxapp --field-selector metadata.name=ricxapp-influxdb -o jsonpath='{.items[0].spec.clusterIP}'`
+INFLUXDB_USER=`kubectl -n ricxapp get secrets custom-influxdb-secret -o jsonpath="{.data.influxdb-user}" | base64 --decode`
+INFLUXDB_PASS=`kubectl -n ricxapp get secrets custom-influxdb-secret -o jsonpath="{.data.influxdb-password}" | base64 --decode`
 IARGS=""
 if [ -n "$INFLUXDB_USER" ]; then
     IARGS="${INFLUXDB_USER}"

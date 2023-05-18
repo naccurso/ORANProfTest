@@ -239,10 +239,37 @@ EOF
     fi
 fi
 
+# Get our local IP on the management lan.
+MIP=`getnodeip $HEAD $MGMTLAN`
+
+# Install influxdb, rather than using the one in the ricplt namespace.
+# (depending on RIC version, both influxd v1 and v2 are used, and we (NexRAN
+# stack) require v1).
+helm repo add influxdata https://helm.influxdata.com/
+helm repo update
+cat <<EOF >$OURDIR/influxdb-values.yaml
+persistence:
+  enabled: 1
+admin:
+  existingSecret: custom-influxdb-secret
+config:
+  http:
+    auth-enabled: true
+setDefaultUser:
+  enabled: true
+  user:
+    existingSecret: custom-influxdb-secret
+EOF
+kubectl -n ricxapp create secret generic custom-influxdb-secret \
+    --from-literal="influxdb-user=admin" \
+    --from-literal="influxdb-password=$ADMIN_PASS"
+helm upgrade -n ricxapp --install ricxapp-influxdb --version 4.9.14 influxdata/influxdb \
+    -f $OURDIR/influxdb-values.yaml --debug --wait
+
 # Grab influxdb credentials
-INFLUXDB_IP=`kubectl get svc -n ricplt --field-selector metadata.name=ricplt-influxdb -o jsonpath='{.items[0].spec.clusterIP}'`
-INFLUXDB_USER=`kubectl -n ricplt get secrets ricplt-influxdb-auth -o jsonpath="{.data.influxdb-user}" | base64 --decode`
-INFLUXDB_PASS=`kubectl -n ricplt get secrets ricplt-influxdb-auth -o jsonpath="{.data.influxdb-password}" | base64 --decode`
+INFLUXDB_IP=`kubectl get svc -n ricxapp --field-selector metadata.name=ricxapp-influxdb -o jsonpath='{.items[0].spec.clusterIP}'`
+INFLUXDB_USER=`kubectl -n ricxapp get secrets custom-influxdb-secret -o jsonpath="{.data.influxdb-user}" | base64 --decode`
+INFLUXDB_PASS=`kubectl -n ricxapp get secrets custom-influxdb-secret -o jsonpath="{.data.influxdb-password}" | base64 --decode`
 IARGS=""
 if [ -n "$INFLUXDB_USER" ]; then
     IARGS="$IARGS -username '$INFLUXDB_USER'"
@@ -251,8 +278,10 @@ if [ -n "$INFLUXDB_PASS" ]; then
     IARGS="$IARGS -password '$INFLUXDB_PASS'"
 fi
 
+maybe_install_packages influxdb-client
+echo create database nexran | influx -host $INFLUXDB_IP $IARGS
+
 # Install Grafana
-MIP=`getnodeip $HEAD $MGMTLAN`
 $SUDO cp -p /local/repository/etc/nexran-grafana-dashboard.json \
     /local/profile-public/
 helm repo add grafana https://grafana.github.io/helm-charts
@@ -277,7 +306,7 @@ datasources:
       - name: InfluxDB
         type: influxdb
         uid: OzcR1Jo4k
-        url: "http://ricplt-influxdb:8086"
+        url: "http://ricxapp-influxdb:8086"
         password: "$INFLUXDB_PASS"
         user: "$INFLUXDB_USER"
         database: "nexran"
@@ -288,20 +317,16 @@ datasources:
         isDefault: true
         editable: true
 EOF
-kubectl -n ricplt create secret generic custom-grafana-secret \
+kubectl -n ricxapp create secret generic custom-grafana-secret \
     --from-literal="admin-user=admin" \
     --from-literal="admin-password=$ADMIN_PASS"
-helm -n ricplt install ricplt-grafana grafana/grafana \
+helm -n ricxapp install ricxapp-grafana grafana/grafana \
     -f $OURDIR/grafana-values.yaml --debug --wait
 AUTHSTR=`echo "import base64; import sys; sys.stdout.write(base64.b64encode(b'admin:$ADMIN_PASS').decode());" | python`
 curl -X POST -H 'Content-type: application/json' \
     -H "Authorization: Basic $AUTHSTR" \
     -d "{\"overwrite\":true,\"inputs\":[],\"folderId\":0,\"dashboard\":$(cat /local/repository/etc/nexran-grafana-dashboard.json) }" \
     http://`cat /var/emulab/boot/myip`:3003/api/dashboards/import
-
-maybe_install_packages influxdb-client
-
-echo create database nexran | influx -host $INFLUXDB_IP $IARGS
 
 if [ $BGPULL -eq 1 ]; then
     wait

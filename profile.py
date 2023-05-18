@@ -467,8 +467,8 @@ This demo runs srsLTE in simulated mode with a single UE.  This may not sound ex
 
 #### Open the Grafana NexRAN Dashboard in your browser
 
-The profile's setup scripts have installed Grafana, pointed it to the InfluxDB
-instance created by the OSC RIC install, and you should be able to access it at
+The profile's setup scripts have installed a InfluxDB and Grafana for NexRAN to use in the ricxapp namespace, pointed Grafana to that InfluxDB
+instance, and you should now be able to access Grafana at
 [http://{host-node-0}:3003/d/VKl6zaTVz/nexran](http://{host-node-0}:3003/d/VKl6zaTVz/nexran) .  Open this link in a new tab or window.  Use the
 `admin` username and the automatically-generated random password
 `{password-adminPass}` to login.  If the dashboard-direct link does not work,
