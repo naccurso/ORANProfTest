@@ -435,15 +435,15 @@ These instructions take you through you a demo of the interaction between our RA
 
     (to view the output of the RIC E2 termination service, to which RAN nodes connect over SCTP).
 
-2.  (optional)  In a new ssh connection to `node-0`:
-
-        kubectl logs -f -n ricplt -l app=ricplt-submgr
-
     (to view the output of the RIC subscription manager service, which aggregates xApp subscription requests and forwards them to target RAN nodes)
 
-3.  (optional) In a new ssh connection to `node-0`:
+2.  (optional) In a new ssh connection to `node-0`:
 
         kubectl logs -f -n ricplt -l app=ricplt-e2mgr
+
+3.  (optional)  In a new ssh connection to `node-0`:
+
+        kubectl logs -f -n ricplt -l app=ricplt-submgr
 
     (to view the output of the RIC E2 manager service, which shows information about connected RAN nodes)
 
@@ -494,12 +494,12 @@ this page, and data will begin to populate the graphs.
 2.  In the same connection to `node-0` where you ran `srsepc`, run an srsLTE eNodeB.
 
         . /local/repository/demo/get-env.sh
-        sudo /local/setup/srslte-ric/build/srsenb/src/srsenb \
-            --enb.n_prb=15 --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq \
-            --rf.device_args="fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001" \
-            --ric.agent.remote_ipv4_addr=${E2TERM_SCTP} \
-            --ric.agent.local_ipv4_addr=10.10.1.1 --ric.agent.local_port=52525 \
-            --log.all_level=warn --ric.agent.log_level=debug --log.filename=stdout \
+        sudo /local/setup/srslte-ric/build/srsenb/src/srsenb \\
+            --enb.n_prb=15 --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq \\
+            --rf.device_args="fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001" \\
+            --ric.agent.remote_ipv4_addr=${E2TERM_SCTP} \\
+            --ric.agent.local_ipv4_addr=10.10.1.1 --ric.agent.local_port=52525 \\
+            --log.all_level=warn --ric.agent.log_level=debug --log.filename=stdout \\
             --slicer.enable=1 --slicer.workshare=0
 
     The first line grabs the current E2 termination service's SCTP IP endpoint address (its kubernetes pod IP -- note that there is a different IP address for the E2 term service's HTTP endpoint); then, the second line runs an srsLTE eNodeB in simulated mode, which will connect to the E2 termination service.  If all goes well, within a few seconds, you will see XML message dumps of the E2SetupRequest (sent by the eNodeB) and the E2SetupResponse (sent by the E2 manager, and relayed to the eNodeB by the E2 termination service).
@@ -509,9 +509,9 @@ this page, and data will begin to populate the graphs.
 3.  In a new ssh connection to `node-0`, run a simulated UE, placing its network interface into a separate network namespace:
 
         sudo ip netns add ue1
-        sudo /local/setup/srslte-ric/build/srsue/src/srsue \
-            --rf.device_name=zmq --rf.device_args="tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,id=ue,base_srate=23.04e6" \
-            --usim.algo=xor --usim.imsi=001010123456789 --usim.k=00112233445566778899aabbccddeeff --usim.imei=353490069873310 \
+        sudo /local/setup/srslte-ric/build/srsue/src/srsue \\
+            --rf.device_name=zmq --rf.device_args="tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,id=ue,base_srate=23.04e6" \\
+            --usim.algo=xor --usim.imsi=001010123456789 --usim.k=00112233445566778899aabbccddeeff --usim.imei=353490069873310 \\
             --log.all_level=warn --log.filename=stdout --gw.netns=ue1
 
     Note that we place the UE's mobile network interface in separate network namespace since the SPGW network interface from the EPC process is already in the root network namespace with an `192.168.0.1` address in the same subnet as the UE's address will be in.
@@ -522,48 +522,47 @@ this page, and data will begin to populate the graphs.
 1.  In a new ssh connection to `node-0`, onboard and deploy the `nexran` xApp:
     - Onboard the `nexran` xApp:
 
+      (`e-release` and above)
+      ```
+      /local/setup/oran/dms_cli onboard \\
+          /local/profile-public/nexran-config-file.json \\
+          /local/setup/oran/xapp-embedded-schema.json
+      ```
       (`dawn` and lower)
       ```
       . /local/repository/demo/get-env.sh
-      curl -L -X POST \
-          "http://${KONG_PROXY}:32080/onboard/api/v1/onboard/download" \
-          --header 'Content-Type: application/json' \
+      curl -L -X POST \\
+          "http://${KONG_PROXY}:32080/onboard/api/v1/onboard/download" \\
+          --header 'Content-Type: application/json' \\
           --data-binary "@/local/profile-public/nexran-onboard.url"
-      ```
-      (`e-release` and above)
-      ```
-      /local/setup/oran/dms_cli onboard \
-          /local/profile-public/nexran-config-file.json \
-          /local/setup/oran/xapp-embedded-schema.json
       ```
       (Note that the profile created the referenced config file in `/local/profile-public/nexran-config-file.json`.  For pre-`e-release` deployments, it also creates `/local/profile-public/nexran-onboard.url`, a JSON file that points the onboarder service to the xApp config file, and started an nginx endpoint to serve content (the xApp config file) on `node-0:7998`.  In post-`d-release` deployments, the onboarder URL file is unnecessary, as shown above with `dms_cli`.)
     - Verify that the app was successfully created:
-
-      (`dawn` and lower)
-      ```
-      curl -L -X GET \
-          "http://${KONG_PROXY}:32080/onboard/api/v1/charts"
-      ```
-      (You should see a single JSON blob that refers to a Helm chart.)
 
       (`e-release` and above)
       ```
       /local/setup/oran/dms_cli get_charts_list
       ```
-    - Deploy the `nexran` xApp:
-
       (`dawn` and lower)
       ```
-      curl -L -X POST \
-          "http://${KONG_PROXY}:32080/appmgr/ric/v1/xapps" \
-          --header 'Content-Type: application/json' \
-          --data-raw '{"xappName": "nexran"}'
+      curl -L -X GET \\
+          "http://${KONG_PROXY}:32080/onboard/api/v1/charts"
       ```
+      (You should see a single JSON blob that refers to a Helm chart.)
+    - Deploy the `nexran` xApp:
 
       (`e-release` and above)
       ```
-      /local/setup/oran/dms_cli install \
+      /local/setup/oran/dms_cli install \\
           --xapp_chart_name=nexran --version=0.1.0 --namespace=ricxapp
+      ```
+
+      (`dawn` and lower)
+      ```
+      curl -L -X POST \\
+          "http://${KONG_PROXY}:32080/appmgr/ric/v1/xapps" \\
+          --header 'Content-Type: application/json' \\
+          --data-raw '{"xappName": "nexran"}'
       ```
     - View the logs of the `nexran` xApp:
 
@@ -585,8 +584,8 @@ this page, and data will begin to populate the graphs.
 4.  To see statistics in your Grafana dashboard, configure the NexRAN xApp:
 
         . /local/repository/demo/get-env.sh
-        curl -L -X PUT http://$NEXRAN_XAPP:8000/v1/appconfig \
-            -H "Content-type: application/json" \
+        curl -L -X PUT http://$NEXRAN_XAPP:8000/v1/appconfig \\
+            -H "Content-type: application/json" \\
             -d '{"kpm_interval_index":18,"influxdb_url":"'$INFLUXDB_URL'?db=nexran"}'
 
 5.  In a new ssh connection to `node-0`, run an iperf server *in the UE's network namespace* (so that you can observe the effects of dynamic slicing in the downlink:
@@ -627,23 +626,23 @@ this page, and data will begin to populate the graphs.
     - Onboard the `scp-kpimon` xApp:
     ```
     . /local/repository/demo/get-env.sh
-    curl -L -X POST \
-        "http://${KONG_PROXY}:32080/onboard/api/v1/onboard/download" \
-        --header 'Content-Type: application/json' \
+    curl -L -X POST \\
+        "http://${KONG_PROXY}:32080/onboard/api/v1/onboard/download" \\
+        --header 'Content-Type: application/json' \\
         --data-binary "@/local/profile-public/scp-kpimon-onboard.url"
     ```
     (Note that the profile created `/local/profile-public/scp-kpimon-onboard.url`, a JSON file that points the onboarder to the xApp config file, and started an nginx endpoint to serve content (the xApp config file) on `node-0:7998`.  The referenced config file is in `/local/profile-public/scp-kpimon-config-file.json`.  Note that this config file has an environment variable, `ranList=enB_macro_001_001_0019b0`, that tells kpimon to subscribe to the gNodeB with the args you created above.  If you change the `srsenb` command above with a different mcc/mnc/id, you will need to change the value of this variable and delete and re-create the xApp.  Or if you can figure a way to override an environment variable during xApp deploy, do that.)
     - Verify that the app was successfully created:
     ```
-    curl -L -X GET \
+    curl -L -X GET \\
         "http://${KONG_PROXY}:32080/onboard/api/v1/charts"
     ```
     (You should see a single JSON blob that refers to a Helm chart.)
     - Deploy the `scp-kpimon` xApp:
     ```
-    curl -L -X POST \
-        "http://${KONG_PROXY}:32080/appmgr/ric/v1/xapps" \
-        --header 'Content-Type: application/json' \
+    curl -L -X POST \\
+        "http://${KONG_PROXY}:32080/appmgr/ric/v1/xapps" \\
+        --header 'Content-Type: application/json' \\
         --data-raw '{"xappName": "scp-kpimon"}'
     ```
     - View the logs of the `scp-kpimon` xApp:
@@ -689,12 +688,12 @@ this page, and data will begin to populate the graphs.
 
 If one or more of your O-RAN components has failed (e.g. subscriptions/indications not making it from/to your xApps, or if RAN nodes cannot register with the RIC's e2term service), you may want to try a partial restart.  The following command will quickly restart the core RIC services and is much less invasive than a full redeploy:
 
-    kubectl -n ricplt rollout restart \
-        deployments/deployment-ricplt-e2term-alpha \
-        deployments/deployment-ricplt-e2mgr \
-        deployments/deployment-ricplt-submgr \
-        deployments/deployment-ricplt-rtmgr \
-        deployments/deployment-ricplt-appmgr \
+    kubectl -n ricplt rollout restart \\
+        deployments/deployment-ricplt-e2term-alpha \\
+        deployments/deployment-ricplt-e2mgr \\
+        deployments/deployment-ricplt-submgr \\
+        deployments/deployment-ricplt-rtmgr \\
+        deployments/deployment-ricplt-appmgr \\
         statefulsets/statefulset-ricplt-dbaas-server
 
 ### Redeploying O-RAN (if necessary)
@@ -715,9 +714,9 @@ If you selected the `Install O-RAN SC SMO` parameter when you created your exper
 Browse to https://{host-node-0}:8443 and enter username `admin` and password `Kp8bJ4SXszM0WXlhak3eHlcse2gAw84vaoGGmJvUy2U`.  Click `Connect` in the left hand navbar.  If you selected the `Install O-RAN SC SMO Simulators` parameter when you created your experiment, you should see several simulated O-RU devices; click to explore them.  If not, you can start the simulators manually via
 (if you selected the `Use Cached OSC SMO Charts`:)
 
-    helm install -n network --create-namespace --debug oran-simulator \
-        osc-smo-powder-f-release/ru-du-simulators \
-        -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/network-simulators-override.yaml \
+    helm install -n network --create-namespace --debug oran-simulator \\
+        osc-smo-powder-f-release/ru-du-simulators \\
+        -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/network-simulators-override.yaml \\
         -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/network-simulators-topology-override.yaml
 
 (or if not:)
@@ -739,12 +738,12 @@ There are basic instructions for deploying and testing SD-RAN here: https://docs
 
 ```
 export E2TERM_SCTP=`kubectl get service -n sd-ran onos-e2t -o jsonpath='{.spec.clusterIP}'`
-sudo /local/setup/srslte-ric/build/srsenb/src/srsenb \
-    --enb.n_prb=15 --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq \
-    --rf.device_args="fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001" \
-    --ric.agent.remote_ipv4_addr=${E2TERM_SCTP} \
-    --ric.agent.local_port=59596 --ric.agent.local_ipv4_addr=192.168.128.1 \
-    --log.all_level=warn --ric.agent.log_level=debug --log.filename=stdout \
+sudo /local/setup/srslte-ric/build/srsenb/src/srsenb \\
+    --enb.n_prb=15 --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq \\
+    --rf.device_args="fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001" \\
+    --ric.agent.remote_ipv4_addr=${E2TERM_SCTP} \\
+    --ric.agent.local_port=59596 --ric.agent.local_ipv4_addr=192.168.128.1 \\
+    --log.all_level=warn --ric.agent.log_level=debug --log.filename=stdout \\
     --slicer.enable=1 --slicer.workshare=0
 ```
 
