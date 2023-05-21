@@ -272,14 +272,22 @@ INFLUXDB_USER=`kubectl -n ricxapp get secrets custom-influxdb-secret -o jsonpath
 INFLUXDB_PASS=`kubectl -n ricxapp get secrets custom-influxdb-secret -o jsonpath="{.data.influxdb-password}" | base64 --decode`
 IARGS=""
 if [ -n "$INFLUXDB_USER" ]; then
-    IARGS="$IARGS -username '$INFLUXDB_USER'"
+    IARGS="$IARGS -username $INFLUXDB_USER"
 fi
 if [ -n "$INFLUXDB_PASS" ]; then
-    IARGS="$IARGS -password '$INFLUXDB_PASS'"
+    IARGS="$IARGS -password $INFLUXDB_PASS"
 fi
 
 maybe_install_packages influxdb-client
-echo create database nexran | influx -host $INFLUXDB_IP $IARGS
+ret=30
+while [ $ret -gt 0 ]; do
+    echo create database nexran | influx -host $INFLUXDB_IP $IARGS
+    if [ $? -eq 0 ]; then
+	break
+    fi
+    sleep 4
+    ret=`expr $ret - 1`
+done
 
 # Install Grafana
 $SUDO cp -p /local/repository/etc/nexran-grafana-dashboard.json \
