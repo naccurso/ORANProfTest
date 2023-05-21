@@ -336,6 +336,8 @@ curl -X POST -H 'Content-type: application/json' \
     -d "{\"overwrite\":true,\"inputs\":[],\"folderId\":0,\"dashboard\":$(cat /local/repository/etc/nexran-grafana-dashboard.json) }" \
     http://`cat /var/emulab/boot/myip`:3003/api/dashboards/import
 
+maybe_install_packages iperf3
+
 if [ $BGPULL -eq 1 ]; then
     wait
 fi
