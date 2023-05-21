@@ -5,9 +5,12 @@ if [ -z "$SLEEPINT" ]; then
     SLEEPINT=4
 fi
 
-export NEXRAN_XAPP=`kubectl get svc -n ricxapp --field-selector metadata.name=service-ricxapp-nexran-rmr -o jsonpath='{.items[0].spec.clusterIP}'`
+export NEXRAN_XAPP=`kubectl get svc -n ricxapp --field-selector metadata.name=service-ricxapp-nexran-nbi -o jsonpath='{.items[0].spec.clusterIP}'`
 if [ -z "$NEXRAN_XAPP" ]; then
-    echo "ERROR: cannot find your NexRAN xApp; might need to recreate it."
+    export NEXRAN_XAPP=`kubectl get svc -n ricxapp --field-selector metadata.name=service-ricxapp-nexran-rmr -o jsonpath='{.items[0].spec.clusterIP}'`
+fi
+if [ -z "$NEXRAN_XAPP" ]; then
+    echo "ERROR: failed to find nexran nbi service; aborting!"
     exit 1
 fi
 
@@ -30,12 +33,12 @@ curl -i -X POST -H "Content-type: application/json" -d '{"name":"slow","allocati
 sleep $SLEEPINT
 
 echo Binding "'fast'" Slice to NodeB: ; echo
-curl -i -X POST http://${NEXRAN_XAPP}:8000/v1/nodebs/enB_macro_001_001_0019b0/slices/fast ; echo ; echo ;
+curl -i -X POST http://${NEXRAN_XAPP}:8000/v1/nodebs/enB_macro_001_001_00019b/slices/fast ; echo ; echo ;
 
 sleep $SLEEPINT
 
 echo Binding "'slow'" Slice to NodeB: ; echo
-curl -i -X POST http://${NEXRAN_XAPP}:8000/v1/nodebs/enB_macro_001_001_0019b0/slices/slow ; echo ; echo ;
+curl -i -X POST http://${NEXRAN_XAPP}:8000/v1/nodebs/enB_macro_001_001_00019b/slices/slow ; echo ; echo ;
 
 sleep $SLEEPINT
 

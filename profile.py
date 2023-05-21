@@ -421,13 +421,13 @@ We deploy O-RAN primarily using [its install scripts](http://gerrit.o-ran-sc.org
 
 The install scripts create three Kubernetes namespaces: `ricplt`, `ricinfra`, and `ricxapp`.  The platform components are deployed in the former namespace, and xApps are deployed in the latter.
 
-### RAN slicing demo
+### NexRAN demos (RAN slicing, throttling, uplink PRB masking)
 
 These instructions take you through you a demo of the interaction between our RAN slicing xApp, the RIC core, and an srsLTE RAN node (with RIC support).  You'll open several ssh connections to the node in your experiment so that you can deploy xApps and monitor the flow of information through the O-RAN RIC components.  If you're more interested in the overall demo, and less so in the gory details, you can skip the (optional) steps.  (You can also fire up a KPM metrics xApp written by Samsung with our bugfixes, and watch metrics arrive from the NodeB each second, as well; those instructions are in the next section.)
 
 (*Note:* if your POWDER account does not have `bash` nor `sh` set as its default shell, run `bash` first, since some of the demo commands use Bourne shell syntax for setting variables.)
 
-#### Viewing component log output:
+#### Viewing OSC RIC component log output (optional)
 
 1.  (optional)  In a new ssh connection to `node-0`:
 
@@ -460,9 +460,9 @@ These instructions take you through you a demo of the interaction between our RA
     (to view the output of the RIC route manager, which manages RMR routes across the RIC components)
 
 
-### Running the `nexran` RAN slicing demo:
+### Running NexRAN demos
 
-This demo runs srsLTE in simulated mode with a single UE.  This may not sound exciting from a RAN slicing standpoint, but because our slice scheduler has a toggleable work conserving mode, you can observe the effects of dynamic slice resource reconfiguration with a TCP stream to a single UE, and it's a bit easier to set up.
+These demos run srsLTE in simulated mode with a single UE.  This may not sound exciting from a RAN slicing standpoint, but because our slice scheduler has a toggleable work conserving mode, you can observe the effects of dynamic slice resource reconfiguration with a TCP stream to a single UE, and it's a bit easier to set up.
 
 
 #### Open the Grafana NexRAN Dashboard in your browser
@@ -517,52 +517,28 @@ this page, and data will begin to populate the graphs.
     Note that we place the UE's mobile network interface in separate network namespace since the SPGW network interface from the EPC process is already in the root network namespace with an `192.168.0.1` address in the same subnet as the UE's address will be in.
     Note that the IMSI and key correspond to values for `ue1` in `/etc/srslte/user_db.csv`.  If you want to change the contents of that file, make sure to first kill the EPC process, then modify, then restart EPC.  The EPC process updates this file when it exits.
 
-#### Running the NexRAN xApp
+#### Running the NexRAN xApp and the first RAN slicing demo
 
 1.  In a new ssh connection to `node-0`, onboard and deploy the `nexran` xApp:
     - Onboard the `nexran` xApp:
 
-      (`e-release` and above)
       ```
       /local/setup/oran/dms_cli onboard \\
           /local/profile-public/nexran-config-file.json \\
           /local/setup/oran/xapp-embedded-schema.json
       ```
-      (`dawn` and lower)
-      ```
-      . /local/repository/demo/get-env.sh
-      curl -L -X POST \\
-          "http://${KONG_PROXY}:32080/onboard/api/v1/onboard/download" \\
-          --header 'Content-Type: application/json' \\
-          --data-binary "@/local/profile-public/nexran-onboard.url"
-      ```
       (Note that the profile created the referenced config file in `/local/profile-public/nexran-config-file.json`.  For pre-`e-release` deployments, it also creates `/local/profile-public/nexran-onboard.url`, a JSON file that points the onboarder service to the xApp config file, and started an nginx endpoint to serve content (the xApp config file) on `node-0:7998`.  In post-`d-release` deployments, the onboarder URL file is unnecessary, as shown above with `dms_cli`.)
     - Verify that the app was successfully created:
 
-      (`e-release` and above)
       ```
       /local/setup/oran/dms_cli get_charts_list
-      ```
-      (`dawn` and lower)
-      ```
-      curl -L -X GET \\
-          "http://${KONG_PROXY}:32080/onboard/api/v1/charts"
       ```
       (You should see a single JSON blob that refers to a Helm chart.)
     - Deploy the `nexran` xApp:
 
-      (`e-release` and above)
       ```
       /local/setup/oran/dms_cli install \\
           --xapp_chart_name=nexran --version=0.1.0 --namespace=ricxapp
-      ```
-
-      (`dawn` and lower)
-      ```
-      curl -L -X POST \\
-          "http://${KONG_PROXY}:32080/appmgr/ric/v1/xapps" \\
-          --header 'Content-Type: application/json' \\
-          --data-raw '{"xappName": "nexran"}'
       ```
     - View the logs of the `nexran` xApp:
 
@@ -600,7 +576,7 @@ this page, and data will begin to populate the graphs.
 
 7.  Run the simple demo script.  (This script creates two slices, `fast` and `slow`, where `fast` is given a proportional share of `1024` (the max, range is `1-1024`), and `slow` is given a share of `256`.
 
-        /local/repository/run-nexran-demo.sh
+        /local/repository/demo/run-nexran-slicing.sh
 
     You will see several API invocations, and their return output, scroll past, each prefixed with a message indicating the intent of the invocation.  You should see the client bandwidth drop to around 29Mbps.  This happens because the `fast` slice now has an 80% share of the available bandwidth, and work-conserving mode is disable, so the scheduler is leaving 20% of the PRBs available for UEs bound to the `slow` slice.
 
@@ -620,6 +596,12 @@ this page, and data will begin to populate the graphs.
 
     You should see the client bandwidth increase to around 18Mbps, because now both slices are allocated a 50% share.
 
+#### NexRAN Slice Throttling demo
+
+
+#### NexRAN NodeB Uplink masking demo
+
+
 ### KPM (metrics) demo
 
 1.  In a new ssh connection to `node-0`, run the following commands to onboard and deploy the `scp-kpimon` xApp:
@@ -631,7 +613,7 @@ this page, and data will begin to populate the graphs.
         --header 'Content-Type: application/json' \\
         --data-binary "@/local/profile-public/scp-kpimon-onboard.url"
     ```
-    (Note that the profile created `/local/profile-public/scp-kpimon-onboard.url`, a JSON file that points the onboarder to the xApp config file, and started an nginx endpoint to serve content (the xApp config file) on `node-0:7998`.  The referenced config file is in `/local/profile-public/scp-kpimon-config-file.json`.  Note that this config file has an environment variable, `ranList=enB_macro_001_001_0019b0`, that tells kpimon to subscribe to the gNodeB with the args you created above.  If you change the `srsenb` command above with a different mcc/mnc/id, you will need to change the value of this variable and delete and re-create the xApp.  Or if you can figure a way to override an environment variable during xApp deploy, do that.)
+    (Note that the profile created `/local/profile-public/scp-kpimon-onboard.url`, a JSON file that points the onboarder to the xApp config file, and started an nginx endpoint to serve content (the xApp config file) on `node-0:7998`.  The referenced config file is in `/local/profile-public/scp-kpimon-config-file.json`.  Note that this config file has an environment variable, `ranList=enB_macro_001_001_00019b`, that tells kpimon to subscribe to the gNodeB with the args you created above.  If you change the `srsenb` command above with a different mcc/mnc/id, you will need to change the value of this variable and delete and re-create the xApp.  Or if you can figure a way to override an environment variable during xApp deploy, do that.)
     - Verify that the app was successfully created:
     ```
     curl -L -X GET \\
@@ -674,9 +656,10 @@ this page, and data will begin to populate the graphs.
 
 8.  To undeploy the xApps, you can run
 
-        . /local/repository/demo/get-env.sh
-        curl -L -X DELETE http://${APPMGR_HTTP}:8080/ric/v1/xapps/nexran
-        curl -L -X DELETE http://${APPMGR_HTTP}:8080/ric/v1/xapps/scp-kpimon
+        /local/setup/oran/dms_cli uninstall \\
+            nexran --version=0.1.0 --namespace=ricxapp
+        /local/setup/oran/dms_cli uninstall \\
+            scp-kpimon --version=1.0.1 --namespace=ricxapp
 
 9.  To remove the xApp descriptors (e.g. to re-upload with new images or configuration):
 

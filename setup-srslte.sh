@@ -58,5 +58,9 @@ $SUDO ./srslte_install_configs.sh service
 $SUDO sed -ie 's/^\(ue1.*\),dynamic/\1,192.168.0.2/' \
     /etc/srslte/user_db.csv
 
+maybe_install_packages crudini
+
+
+
 logtend "srslte"
 touch $OURDIR/setup-srslte-done

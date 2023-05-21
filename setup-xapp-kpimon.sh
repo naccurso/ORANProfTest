@@ -61,7 +61,7 @@ cat <<EOF >$WWWPUB/scp-kpimon-config-file.json
             }
         }
     ],
-    "appenv": { "ranList":"enB_macro_001_001_0019b0" },
+    "appenv": { "ranList":"enB_macro_001_001_00019b" },
     "messaging": {
         "ports": [
             {
