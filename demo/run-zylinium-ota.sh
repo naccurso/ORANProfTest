@@ -8,7 +8,7 @@ if [ -z "$SLEEPINT" ]; then
 fi
 
 if [ -z "$NEXRAN_URL" ]; then
-    NEXRAN_XAPP=`kubectl get svc -n ricxapp --field-selector metadata.name=service-ricxapp-nexran-rmr -o jsonpath='{.items[0].spec.clusterIP}'`
+    NEXRAN_XAPP=`kubectl get svc -n ricxapp --field-selector metadata.name=service-ricxapp-nexran-nbi -o jsonpath='{.items[0].spec.clusterIP}'`
     if [ -z "$NEXRAN_XAPP" ]; then
 	echo "ERROR: cannot find your NexRAN xApp; might need to recreate it."
 	exit 1

@@ -42,4 +42,4 @@ curl -i -X PUT -H "Content-type: application/json" -d '{"ul_mask_def":"0xfffe000
 sleep $SLEEPINT
 
 echo Setting an uplink schedule: ; echo
-curl -i -X PUT -H "Content-type: application/json" -d '{"ul_mask_sched":[{"mask":"0xf00000","start":'`echo "import time; print(time.time() + 8)" | python`'},{"mask":"0xfe0000","start":'`echo "import time; print(time.time() + 68)" | python`'},{"mask":"0xf00000","start":'`echo "import time; print(time.time() + 128)" | python`'},{"mask":"0xfe0000","start":'`echo "import time; print(time.time() + 188)" | python`'}]}' ${NEXRAN_URL}/v1/nodebs/enB_macro_001_001_00019b ; echo ; echo ;
+curl -i -X PUT -H "Content-type: application/json" -d '{"ul_mask_sched":[{"mask":"0x00000f","start":'`echo "import time; print(time.time() + 8)" | python`'},{"mask":"0x000000","start":'`echo "import time; print(time.time() + 68)" | python`'},{"mask":"0x00000f","start":'`echo "import time; print(time.time() + 128)" | python`'},{"mask":"0x000000","start":'`echo "import time; print(time.time() + 188)" | python`'}]}' ${NEXRAN_URL}/v1/nodebs/enB_macro_001_001_00019b ; echo ; echo ;
