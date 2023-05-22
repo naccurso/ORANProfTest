@@ -37,7 +37,7 @@ curl -i -X GET http://${NEXRAN_XAPP}:8000/v1/nodebs/enB_macro_001_001_00019b ; e
 sleep $SLEEPINT
 
 echo Setting default uplink mask: ; echo
-curl -i -X PUT -H "Content-type: application/json" -d '{"ul_mask_def":"0xfffe000"}' ${NEXRAN_URL}/v1/nodebs/enB_macro_001_001_00019b ; echo ; echo ;
+curl -i -X PUT -H "Content-type: application/json" -d '{"ul_mask_def":"0x000000"}' ${NEXRAN_URL}/v1/nodebs/enB_macro_001_001_00019b ; echo ; echo ;
 
 sleep $SLEEPINT
 

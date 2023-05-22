@@ -564,13 +564,13 @@ this page, and data will begin to populate the graphs.
             -H "Content-type: application/json" \\
             -d '{"kpm_interval_index":18,"influxdb_url":"'$INFLUXDB_URL'?db=nexran"}'
 
-5.  In a new ssh connection to `node-0`, run an iperf server *in the UE's network namespace* (so that you can observe the effects of dynamic slicing in the downlink:
+5.  In a new ssh connection to `node-0`, run an iperf server:
 
-        sudo ip netns exec ue1 iperf -s -p 5010 -i 4 -t 36000
+        iperf3 -s -B 192.168.0.1 -p 5010 -i 1
 
-6.  In a new ssh connection to `node-0`, run an iperf client:
+6.  In a new ssh connection to `node-0`, run an iperf client *in the UE's network namespace* so that you can observe the effects of dynamic slicing in the downlink.  (Note that you must supply the `-R` to test the downlink---to have the client, the simulated UE, pull from the iperf server, the EPC in the root network namespace.  When you test the uplink in a future subsection step, you will remove the `-R` option when you re-run the client.)
 
-        iperf -c 192.168.0.2 -p 5010 -i 4 -t 36000
+        sudo ip netns exec ue1 iperf3 -c 192.168.0.1 -p 5010 -i 1 -t 36000
 
     You should see a bandwidth of approximately 35-40Mbps on a `d740` with 15 PRBs; but the important thing is to observe the baseline.  By default, unsliced UEs can utilize all available downlink PRBs.
 
@@ -619,9 +619,13 @@ this page, and data will begin to populate the graphs.
 
 #### NexRAN NodeB Uplink masking demo
 
-1.  Kill your iperf client and restart it with the `-R` option appended.  This will cause the iperf server-client pair to test the uplink instead of the downlink.
+1.  Kill your iperf client and restart it without the `-R` option.  This will cause the iperf server-client pair to test the uplink instead of the downlink (the iperf client will push data to the server without `-R`).
 
-2.  Run the simple demo script.  (This script creates two slices, `fast` and `slow`, where `fast` is given a proportional share of `512` (the max, range is `1-1024`), and `slow` is given a share of `256`.  If you had previously run the slicing demo, it will instead modify the `fast` slice's policy to enable throttling.)
+2.  Run the cleanup script to ensure there is no lingering NexRAN state.  If your NodeB or UEs have crashed, restart them as in the previous section.
+
+        /local/repository/demo/cleanup-nexran.sh
+
+3.  Run the uplink PRB masking demo script.  (This script creates a single simulated NodeB, initializes a )
 
         /local/repository/demo/run-zylinium.sh
 
