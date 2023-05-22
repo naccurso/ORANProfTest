@@ -610,10 +610,10 @@ this page, and data will begin to populate the graphs.
 
 3.  Change the throttling policy:
 
-       . /local/repository/demo/get-env.sh
-       curl -i -X PUT -H "Content-type: application/json" \\
-           -d '{"allocation_policy":{"type":"proportional","share":512,"auto_equalize":false,"throttle":true,"throttle_threshold":50000000,"throttle_period":60,"throttle_target":5000000}}' \\
-           http://${NEXRAN_XAPP}:8000/v1/slices/fast ; echo
+        . /local/repository/demo/get-env.sh
+        curl -i -X PUT -H "Content-type: application/json" \\
+            -d '{"allocation_policy":{"type":"proportional","share":512,"auto_equalize":false,"throttle":true,"throttle_threshold":50000000,"throttle_period":60,"throttle_target":5000000}}' \\
+            http://${NEXRAN_XAPP}:8000/v1/slices/fast ; echo
 
     This lengthens the `throttle_period` to `60` seconds, which you will be able to observe in the Grafana dashboard.
 
