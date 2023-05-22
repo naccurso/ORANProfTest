@@ -598,9 +598,34 @@ this page, and data will begin to populate the graphs.
 
 #### NexRAN Slice Throttling demo
 
+1.  Run the cleanup script to ensure there is no lingering NexRAN state.  If your NodeB or UEs have crashed, restart them as in the previous section.
+
+        /local/repository/demo/cleanup-nexran.sh
+
+2.  Run the simple demo script.  (This script creates two slices, `fast` and `slow`, where `fast` is given a proportional share of `512` (the max, range is `1-1024`), and `slow` is given a share of `256`.)
+
+        /local/repository/demo/run-nexran-throttle.sh
+
+    You should see the effect of the closed-loop control algorithm adjusting slice shares as the downlink utilization threshold is hit and throttling commences; the share for the `fast` slice will drop from `512` to just above `120` in a repeating pattern.  You will similarly see the bytes transmitted in the downlink will drop approximately in half when throttling is in place.
+
+3.  Change the throttling policy:
+
+       . /local/repository/demo/get-env.sh
+       curl -i -X PUT -H "Content-type: application/json" \\
+           -d '{"allocation_policy":{"type":"proportional","share":512,"auto_equalize":false,"throttle":true,"throttle_threshold":50000000,"throttle_period":60,"throttle_target":5000000}}' \\
+           http://${NEXRAN_XAPP}:8000/v1/slices/fast ; echo
+
+    This lengthens the `throttle_period` to `60` seconds, which you will be able to observe in the Grafana dashboard.
 
 #### NexRAN NodeB Uplink masking demo
 
+0.  Kill your iperf client and restart it with the `-R` option appended.  This will cause the iperf server-client pair to test the uplink instead of the downlink.
+
+1.  Run the simple demo script.  (This script creates two slices, `fast` and `slow`, where `fast` is given a proportional share of `512` (the max, range is `1-1024`), and `slow` is given a share of `256`.  If you had previously run the slicing demo, it will instead modify the `fast` slice's policy to enable throttling.)
+
+        /local/repository/demo/run-zylinium.sh
+
+    After 10-15 seconds, you should see that a new mask policy has been installed.
 
 ### KPM (metrics) demo
 
