@@ -619,13 +619,13 @@ this page, and data will begin to populate the graphs.
 
 #### NexRAN NodeB Uplink masking demo
 
-0.  Kill your iperf client and restart it with the `-R` option appended.  This will cause the iperf server-client pair to test the uplink instead of the downlink.
+1.  Kill your iperf client and restart it with the `-R` option appended.  This will cause the iperf server-client pair to test the uplink instead of the downlink.
 
-1.  Run the simple demo script.  (This script creates two slices, `fast` and `slow`, where `fast` is given a proportional share of `512` (the max, range is `1-1024`), and `slow` is given a share of `256`.  If you had previously run the slicing demo, it will instead modify the `fast` slice's policy to enable throttling.)
+2.  Run the simple demo script.  (This script creates two slices, `fast` and `slow`, where `fast` is given a proportional share of `512` (the max, range is `1-1024`), and `slow` is given a share of `256`.  If you had previously run the slicing demo, it will instead modify the `fast` slice's policy to enable throttling.)
 
         /local/repository/demo/run-zylinium.sh
 
-    After 10-15 seconds, you should see that a new mask policy has been installed.
+    After 10-15 seconds, you should see that a new mask policy has been installed, and you will see periodic changes to the uplink bandwidth in the UE and Slice graphs in the Grafana dashboard.
 
 ### KPM (metrics) demo
 
