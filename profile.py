@@ -631,6 +631,12 @@ this page, and data will begin to populate the graphs.
 
     After 10-15 seconds, you should see that a new mask policy has been installed, and you will see periodic changes to the uplink bandwidth in the UE and Slice graphs in the Grafana dashboard.
 
+4.  Send another mask schedule to the xApp and NodeB:
+
+        . /local/repository/demo/get-env.sh
+        curl -i -X PUT -H "Content-type: application/json" -d '{"ul_mask_sched":[{"mask":"0x00000f","start":'`echo "import time; print(time.time() + 8)" | python`'},{"mask":"0x000000","start":'`echo "import time; print(time.time() + 28)" | python`'},{"mask":"0x00000f","start":'`echo "import time; print(time.time() + 48)" | python`'},{"mask":"0x000000","start":'`echo "import time; print(time.time() + 68)" | python`'}]}' http://${NEXRAN_XAPP}:8000/v1/nodebs/enB_macro_001_001_00019b
+
+
 ### KPM (metrics) demo
 
 1.  In a new ssh connection to `node-0`, run the following commands to onboard and deploy the `scp-kpimon` xApp:
