@@ -637,49 +637,6 @@ this page, and data will begin to populate the graphs.
         curl -i -X PUT -H "Content-type: application/json" -d '{"ul_mask_sched":[{"mask":"0x00000f","start":'`echo "import time; print(time.time() + 8)" | python`'},{"mask":"0x000000","start":'`echo "import time; print(time.time() + 28)" | python`'},{"mask":"0x00000f","start":'`echo "import time; print(time.time() + 48)" | python`'},{"mask":"0x000000","start":'`echo "import time; print(time.time() + 68)" | python`'}]}' http://${NEXRAN_XAPP}:8000/v1/nodebs/enB_macro_001_001_00019b
 
 
-### KPM (metrics) demo
-
-1.  In a new ssh connection to `node-0`, run the following commands to onboard and deploy the `scp-kpimon` xApp:
-    - Onboard the `scp-kpimon` xApp:
-    ```
-    . /local/repository/demo/get-env.sh
-    curl -L -X POST \\
-        "http://${KONG_PROXY}:32080/onboard/api/v1/onboard/download" \\
-        --header 'Content-Type: application/json' \\
-        --data-binary "@/local/profile-public/scp-kpimon-onboard.url"
-    ```
-    (Note that the profile created `/local/profile-public/scp-kpimon-onboard.url`, a JSON file that points the onboarder to the xApp config file, and started an nginx endpoint to serve content (the xApp config file) on `node-0:7998`.  The referenced config file is in `/local/profile-public/scp-kpimon-config-file.json`.  Note that this config file has an environment variable, `ranList=enB_macro_001_001_00019b`, that tells kpimon to subscribe to the gNodeB with the args you created above.  If you change the `srsenb` command above with a different mcc/mnc/id, you will need to change the value of this variable and delete and re-create the xApp.  Or if you can figure a way to override an environment variable during xApp deploy, do that.)
-    - Verify that the app was successfully created:
-    ```
-    curl -L -X GET \\
-        "http://${KONG_PROXY}:32080/onboard/api/v1/charts"
-    ```
-    (You should see a single JSON blob that refers to a Helm chart.)
-    - Deploy the `scp-kpimon` xApp:
-    ```
-    curl -L -X POST \\
-        "http://${KONG_PROXY}:32080/appmgr/ric/v1/xapps" \\
-        --header 'Content-Type: application/json' \\
-        --data-raw '{"xappName": "scp-kpimon"}'
-    ```
-    - View the logs of the `scp-kpimon` xApp:
-    ```
-    kubectl logs -f -n ricxapp -l app=ricxapp-scp-kpimon
-    ```
-    (This shows the output of the RIC `scp-kpimon` application, which will consist of attempts to subscribe to a target RAN node's key performance metrics, and display incoming indications --- metric reports.  However, to see the decoded metrics, you have to run the following command within the pod, since those logs are not dumped to console.)
-
-4.  Stop the prior `kubectl logs ...` command from Step 3, and run
-
-        kubectl exec -it -n ricxapp `kubectl get pod -n ricxapp -l app=ricxapp-scp-kpimon -o jsonpath='{.items[0].metadata.name}'` -- tail -F /opt/kpimon.log
-
-    This will show the decoded metric reports as they arrive from the eNodeB.  We have not yet started a UE, so the reports will not initially have much content, and you'll see that `NumberOfActiveUEs` is `0`.  Note that the command is complicated because you must explicitly name a pod to `kubectl exec`, and pod names have random characters in them.  Thus, if you re-dploy the xApp, the pod name will change; hence the embedded command to find the pod name.
-
-5.  (if you already stopped the iperfs from the slicing demo, or skipped it) In a new ssh connection to `node-0`, send some simple traffic from the simulated UE:
-
-        sudo ip netns exec ue1 ping 192.168.0.1
-
-    Now you should be seeing "real" performance metrics in the `kpimon` logfile tail process you started in Step 9.  You should see that `NumberOfActiveUEs` is now `1`, and you should see `PDCPBytes` numbers in both the uplink and downlink, for multiple QCI values.  Note that these byte counters are per-measurement period, and as of this time of writing, the measurement period the kpimon app requests is 1024ms.
-
 ### Undeploying and Redeploying Apps (e.g. to re-run demos)
 
 1.  To run the demo again if you like, stop the EPC/eNodeB/UE via Ctrl-C.  Wait for the UE process to die before restarting the eNodeB.  You can redeploy xApps via
