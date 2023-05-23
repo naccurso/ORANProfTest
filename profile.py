@@ -472,8 +472,7 @@ instance, and you should now be able to access Grafana at
 [http://{host-node-0}:3003/d/VKl6zaTVz/nexran](http://{host-node-0}:3003/d/VKl6zaTVz/nexran) .  Open this link in a new tab or window.  Use the
 `admin` username and the automatically-generated random password
 `{password-adminPass}` to login.  If the dashboard-direct link does not work,
-but shows the Grafana interface, mouse over the icon with four squares on the
-left, and click `Browse`, click `General`, and select the NexRAN dashboard.
+but shows the Grafana interface, click on the menu icon in the upper left corner, click Dashboards, click `General` within the page to expand the `General` folder, and click `NexRAN` to load the `NexRAN` dashboard.
 
 Make sure you can see several UE and Slice panels.  There will be nothing on
 the graphs at first (you may see `No Data` or error messages---this is ok).
