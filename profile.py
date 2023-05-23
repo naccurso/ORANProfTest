@@ -570,7 +570,7 @@ this page, and data will begin to populate the graphs.
 
 6.  In a new ssh connection to `node-0`, run an iperf client *in the UE's network namespace* so that you can observe the effects of dynamic slicing in the downlink.  (Note that you must supply the `-R` to test the downlink---to have the client, the simulated UE, pull from the iperf server, the EPC in the root network namespace.  When you test the uplink in a future subsection step, you will remove the `-R` option when you re-run the client.)
 
-        sudo ip netns exec ue1 iperf3 -c 192.168.0.1 -p 5010 -i 1 -t 36000
+        sudo ip netns exec ue1 iperf3 -c 192.168.0.1 -p 5010 -i 1 -t 36000 -R
 
     You should see a bandwidth of approximately 35-40Mbps on a `d740` with 15 PRBs; but the important thing is to observe the baseline.  By default, unsliced UEs can utilize all available downlink PRBs.
 
