@@ -1,6 +1,4 @@
 {
-    "dashboard":
-{
   "annotations": {
     "list": [
       {
@@ -2484,8 +2482,4 @@
   "uid": "VKl6zaTVz",
   "version": 3,
   "weekStart": ""
-},
-    "folderId": 0,
-    "slug": "nexran",
-    "url": "/d/VKl6zaTVz/nexran"
 }

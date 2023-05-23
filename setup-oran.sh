@@ -316,6 +316,10 @@ datasources:
         uid: OzcR1Jo4k
         url: "http://ricxapp-influxdb:8086"
         password: "$INFLUXDB_PASS"
+        secureJsonFields:
+          password: true
+        secureJsonData:
+          password: "$INFLUXDB_PASS"
         user: "$INFLUXDB_USER"
         database: "nexran"
         basicAuth:
@@ -333,7 +337,7 @@ helm -n ricxapp install ricxapp-grafana grafana/grafana \
 AUTHSTR=`echo "import base64; import sys; sys.stdout.write(base64.b64encode(b'admin:$ADMIN_PASS').decode());" | python`
 curl -X POST -H 'Content-type: application/json' \
     -H "Authorization: Basic $AUTHSTR" \
-    -d "{\"overwrite\":true,\"inputs\":[],\"folderId\":0,\"dashboard\":$(cat /local/repository/etc/nexran-grafana-dashboard.json) }" \
+    -d "{\"folderId\":0,\"slug\":\"nexran\",\"url\":\"/d/VKl6zaTVz/nexran\",\"dashboard\":$(cat /local/repository/etc/nexran-grafana-dashboard.json) }" \
     http://`cat /var/emulab/boot/myip`:3003/api/dashboards/import
 
 maybe_install_packages iperf3
