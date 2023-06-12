@@ -212,8 +212,8 @@ pc.defineParameter(
     advanced=True)
 pc.defineParameter(
     "kubeFeatureGates","Kubernetes Feature Gate List",
-    portal.ParameterType.STRING,"[SCTPSupport=true,EphemeralContainers=true]",
-    longDescription="A []-enclosed, comma-separated list of features.  For instance, `[SCTPSupport=true]`.",
+    portal.ParameterType.STRING,"[EphemeralContainers=true]",
+    longDescription="A []-enclosed, comma-separated list of features.  For instance, `[SCTPSupport=true]`. NB: ensure your feature gates have not been removed (https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates-removed/).  For instance, SCTPSupport was removed in Kubernetes 1.22, and began defaulting to true in 1.19.  EphemeralContainers was removed in Kubernetes 1.26, and began defaulting to true in 1.23.",
     advanced=True)
 pc.defineParameter(
     "kubeletCustomFlags","Kubelet Custom Flags List",
