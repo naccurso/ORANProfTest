@@ -53,6 +53,7 @@ fi
 # Get Ansible and the kubespray python reqs installed.
 #
 maybe_install_packages ${PYTHON}
+maybe_install_packages ${PYTHONPKGPREFIX}-apt
 if [ $KUBESPRAYUSEVIRTUALENV -eq 1 ]; then
     if [ -e $KUBESPRAY_VIRTUALENV ]; then
 	maybe_install_packages libffi-dev
@@ -191,6 +192,17 @@ dns_min_replicas: 1
 dashboard_enabled: true
 dashboard_token_ttl: 43200
 EOF
+if [ "${CONTAINERMANAGER}" = "docker" ]; then
+    cat <<EOF >> $OVERRIDES
+container_manager: ${CONTAINERMANAGER}
+docker_storage_options: -s overlay2
+EOF
+elif [ "${CONTAINERMANAGER}" = "containerd" ]; then
+    cat <<EOF >> $OVERRIDES
+container_manager: ${CONTAINERMANAGER}
+etcd_deployment_type: host
+EOF
+fi
 if [ -n "${DOCKERVERSION}" ]; then
     cat <<EOF >> $OVERRIDES
 docker_version: ${DOCKERVERSION}
@@ -360,6 +372,86 @@ EOF
 	    fi
 	    mi=`expr $mi + 1`
 	done
+
+	#
+	# Allow metallb to operate on the master node.  Not sure we really
+	# need this, it's never been a problem; but the docs
+	# (https://kubespray.io/#/docs/metallb) tell us to do so.
+	#
+	if [ $NODECOUNT -eq 1 -o $KUBEALLWORKERS -eq 1 ]; then
+	    cat <<EOF >> $OVERRIDES
+metallb_controller_tolerations:
+  - key: "node-role.kubernetes.io/master"
+    operator: "Equal"
+    value: ""
+    effect: "NoSchedule"
+  - key: "node-role.kubernetes.io/control-plane"
+    operator: "Equal"
+    value: ""
+    effect: "NoSchedule"
+EOF
+	fi
+
+	#
+	# release-2.22 and up moves all the config into metallb_config.  So
+	# we just blast that in unconditionally; won't hurt anything; older
+	# releases don't reference it at all.
+	#
+	cat <<EOF >> $OVERRIDES
+metallb_config:
+  address_pools:
+EOF
+	mi=0
+	for pip in $PUBLICADDRS ; do
+	    if [ $mi -eq 0 ]; then
+		cat <<EOF >> $OVERRIDES
+    primary:
+      ip_range:
+        - "$pip-$pip"
+      auto_assign: true
+EOF
+	    else
+		cat <<EOF >> $OVERRIDES
+    pool$mi:
+      ip_range:
+        - "$pip-$pip"
+      auto_assign: true
+EOF
+	    fi
+	    mi=`expr $mi + 1`
+	done
+	cat <<EOF >> $OVERRIDES
+  layer3:
+
+  layer2:
+EOF
+	mi=0
+	for pip in $PUBLICADDRS ; do
+	    if [ $mi -eq 0 ]; then
+		cat <<EOF >> $OVERRIDES
+    - primary
+EOF
+	    else
+		cat <<EOF >> $OVERRIDES
+    - pool$mi
+EOF
+	    fi
+	    mi=`expr $mi + 1`
+	done
+	if [ $NODECOUNT -eq 1 -o $KUBEALLWORKERS -eq 1 ]; then
+	    cat <<EOF >> $OVERRIDES
+  controller:
+    tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Equal"
+        value: ""
+        effect: "NoSchedule"
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Equal"
+        value: ""
+        effect: "NoSchedule"
+EOF
+	fi
     fi
 fi
 
@@ -377,6 +469,33 @@ if [ ! $? -eq 0 ]; then
 fi
 cd ..
 
+#
+# Verify that things generally look promising.
+#
+which kubectl
+if [ ! $? -eq 0 ]; then
+    echo "ERROR: kubectl not present; aborting"
+    exit 1
+fi
+which helm
+if [ ! $? -eq 0 ]; then
+    echo "ERROR: helm not present; aborting"
+    exit 1
+fi
+if [ "$CONTAINERMANAGER" = "docker" ]; then
+    which docker
+    if [ ! $? -eq 0 ]; then
+	echo "ERROR: docker not present; aborting"
+	exit 1
+    fi
+elif [ "$CONTAINERMANAGER" = "containerd" ]; then
+    which ctr
+    if [ ! $? -eq 0 ]; then
+	echo "ERROR: ctr (containerd cli) not present; aborting"
+	exit 1
+    fi
+fi
+
 # kubespray sometimes installs python-is-python2; we can't allow that.
 if [ -s $OURDIR/python-is-what ]; then
     maybe_install_packages `cat $OURDIR/python-is-what`
@@ -391,32 +510,17 @@ mkdir -p /users/$SWAPPER/.kube
 cp -p $INVDIR/artifacts/admin.conf /users/$SWAPPER/.kube/config
 chown -R $SWAPPER /users/$SWAPPER/.kube
 
-kubectl wait pod -n kube-system --for=condition=Ready --all
-
-#
-# If helm is not installed, do that manually.  Seems that there is a
-# kubespray bug (release-2.11) that causes this.
-#
-which helm
-if [ ! $? -eq 0 -a -n "${HELM_VERSION}" ]; then
-    wget https://storage.googleapis.com/kubernetes-helm/helm-${HELM_VERSION}-linux-amd64.tar.gz
-    tar -xzvf helm-${HELM_VERSION}-linux-amd64.tar.gz
-    $SUDO mv linux-amd64/helm /usr/local/bin/helm
-
-    helm init --upgrade --force-upgrade --stable-repo-url "https://charts.helm.sh/stable"
-    kubectl create serviceaccount --namespace kube-system tiller
-    kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
-    kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
-    helm init --service-account tiller --upgrade
-    while [ 1 ]; do
-	helm ls
-	if [ $? -eq 0 ]; then
-	    break
-	fi
-	sleep 4
-    done
+tries=60
+while [ $tries -gt 0 ]; do
     kubectl wait pod -n kube-system --for=condition=Ready --all
-fi
+    if [ $? -eq 0 ]; then
+	break
+    else
+	tries=`expr $tries - 1`
+	echo "WARNING: waiting for kube-system pods to be Ready ($tries remaining)"
+	sleep 5
+    fi
+done
 
 logtend "kubespray"
 touch $OURDIR/kubespray-done
