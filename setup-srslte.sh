@@ -25,8 +25,8 @@ logtstart "srslte"
 cd $OURDIR
 
 maybe_install_packages \
-    cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev \
-    libconfig++-dev libsctp-dev libzmq3-dev
+    autoconf make libtool-bin cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev \
+    libconfig++-dev libsctp-dev libzmq3-dev iperf3
 
 if [ ! -e srslte-ric ]; then
     git clone https://gitlab.flux.utah.edu/powderrenewpublic/srslte-ric
