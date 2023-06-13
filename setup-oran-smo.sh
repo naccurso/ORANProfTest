@@ -79,14 +79,16 @@ a1policymanagement:
   enabled: false
   rics: []
 EOF
-yq m --inplace --overwrite powder/oran-override.yaml \
+yq --inplace ea '. as $item ireduce ({}; . * $item )' \
+    powder/oran-override.yaml \
     powder/powder-oran-override.yaml
 cat <<EOF >powder/powder-onap-override.yaml
 global:
   persistence:
     mountPath: /storage/nfs/deployment-1
 EOF
-yq m --inplace --overwrite powder/onap-override.yaml \
+yq --inplace ea '. as $item ireduce ({}; . * $item )' \
+    powder/onap-override.yaml \
     powder/powder-onap-override.yaml
 cd ..
 
@@ -118,7 +120,8 @@ topology-server:
     tag: 1.5.0
     pullPolicy: IfNotPresent
 EOF
-    yq m --inplace --overwrite powder/network-simulators-override.yaml \
+    yq --inplace ea '. as $item ireduce ({}; . * $item )' \
+        powder/network-simulators-override.yaml \
         powder/powder-network-simulators-override.yaml
     cd ..
 fi

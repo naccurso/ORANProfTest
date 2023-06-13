@@ -106,7 +106,8 @@ appmgr:
 EOF
 fi
 
-yq m --inplace --overwrite $OURDIR/oran/example_recipe.yaml \
+yq --inplace ea '. as $item ireduce ({}; . * $item )' \
+    $OURDIR/oran/example_recipe.yaml \
     $OURDIR/oran/example_recipe.yaml-override
 
 # Unfortunately, the helm setup is completely intermingled
