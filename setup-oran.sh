@@ -72,6 +72,9 @@ RICDEPBRANCH=$RICRELEASE
 if [ $RICVERSION -eq $RICDAWN ]; then
     RICDEPREPO=https://gitlab.flux.utah.edu/powderrenewpublic/ric-dep
     RICDEPBRANCH=dawn-powder
+elif [ $RICVERSION -eq $RICHRELEASE ]; then
+    RICDEPREPO=https://gitlab.flux.utah.edu/powderrenewpublic/ric-dep
+    RICDEPBRANCH=h-release-powder
 fi
 git clone $RICDEPREPO -b $RICDEPBRANCH
 cd ric-dep
@@ -86,7 +89,8 @@ if [ -e RECIPE_EXAMPLE/example_recipe_oran_${RICSHORTRELEASE}_release.yaml ]; th
 else
     cp RECIPE_EXAMPLE/PLATFORM/example_recipe.yaml $OURDIR/oran
 fi
-cat <<EOF >$OURDIR/oran/example_recipe.yaml-override
+if [ $RICRELEASE -lt $RICHRELEASE ]; then
+    cat <<EOF >$OURDIR/oran/example_recipe.yaml-override
 e2term:
   alpha:
     image:
@@ -94,6 +98,9 @@ e2term:
       name: "${E2TERM_NAME}"
       tag: "${E2TERM_TAG}"
 EOF
+else
+    touch $OURDIR/oran/example_recipe.yaml-override
+fi
 if [ $RICVERSION -eq $RICDAWN ]; then
     # appmgr > 0.4.3 isn't really released yet.
     cat <<EOF >>$OURDIR/oran/example_recipe.yaml-override

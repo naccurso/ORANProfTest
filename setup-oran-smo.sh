@@ -16,6 +16,13 @@ cd $OURDIR/oran-smo
 
 myip=`getnodeip $HEAD $MGMTLAN`
 
+$SUDO sysctl fs.inotify.max_user_instances=1024
+$SUDO sysctl fs.inotify.max_user_watches=1000448
+cat <<EOF | $SUDO tee -a /etc/sysctl.d/99-kube.conf
+fs.inotify.max_user_instances=1024
+fs.inotify.max_user_watches=1000448
+EOF
+
 #
 # Install helm push plugin.
 #
@@ -45,8 +52,13 @@ cd ..
 cd $OURDIR/oran-smo
 DEPREPO=http://gerrit.o-ran-sc.org/r/it/dep
 DEPBRANCH=$OSCSMOVERSION
-git clone $DEPREPO -b $DEPBRANCH
+# g-release was not tagged.
+if [ $DEPBRANCH = "g-release" ]; then
+    DEPBRANCH="d1457ddedb21c4f46e20016c56e4c4cd9e8666c2"
+fi
+git clone $DEPREPO
 cd dep
+git checkout $DEPBRANCH
 git submodule update --init --recursive --remote
 git submodule update
 
@@ -96,7 +108,7 @@ cd ..
 # NB: f-release nexus servers dropped the simulator 1.4.5 versions; upgrade
 # to 1.5.0 .
 #
-if [ "$OSCSMOVERSION" = "f-release" ]; then
+if [ "$OSCSMOVERSION" = "f-release" -o "$OSCSMOVERSION" = "g-release" ]; then
     cd helm-override
     cat <<EOF >powder/powder-network-simulators-override.yaml
 ru-simulator:
@@ -126,7 +138,16 @@ EOF
     cd ..
 fi
 
+USECACHEDCHARTS=0
 if [ -n "$OSCSMOUSECACHEDCHARTS" -a $OSCSMOUSECACHEDCHARTS -eq 1 ]; then
+    entries=`curl -o - https://gitlab.flux.utah.edu/api/v4/projects/1869/packages/helm/powder-osc-smo-${OSCSMOVERSION}/index.yaml | yq '.entries'`
+    if [ -z "$entries" -o "$entries" = "{}" -o "$entries" = "null" ]; then
+	USECACHEDCHARTS=0
+    else
+	USECACHEDCHARTS=1
+    fi
+fi
+if [ $USECACHEDCHARTS -eq 1 ]; then
     helm repo add osc-smo-powder-${OSCSMOVERSION} \
         https://gitlab.flux.utah.edu/api/v4/projects/1869/packages/helm/powder-osc-smo-${OSCSMOVERSION}
     helm repo update
