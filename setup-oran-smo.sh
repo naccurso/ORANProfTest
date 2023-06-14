@@ -151,14 +151,27 @@ if [ -n "$OSCSMOUSECACHEDCHARTS" -a $OSCSMOUSECACHEDCHARTS -eq 1 ]; then
 	USECACHEDCHARTS=1
     fi
 fi
+#
+# Need strimzi 0.29.0 for kube API >= 1.22
+# And that strimzi has trouble with computing its max mem due to lack
+# of cgroups v2 support, so bump its limit.
+#
+KAPIMINOR=`kubectl version -o yaml | yq '.serverVersion.minor'`
+if [ -n "$KAPIMINOR" -a $KAPIMINOR -ge 22 ]; then
+    STRIMZIVERSION=0.29.0
+else
+    STRIMZIVERSION=0.28.0
+fi
+helm repo add strimzi https://strimzi.io/charts/
+helm install strimzi-kafka-operator strimzi/strimzi-kafka-operator \
+    --namespace strimzi-system --version $STRIMZIVERSION \
+    --set resources.limits.memory=1Gi --set resources.requests.memory=1Gi \
+    --set watchAnyNamespace=true --create-namespace \
+    --wait --timeout 300s
 if [ $USECACHEDCHARTS -eq 1 ]; then
     helm repo add osc-smo-powder-${OSCSMOVERSION} \
         https://gitlab.flux.utah.edu/api/v4/projects/1869/packages/helm/powder-osc-smo-${OSCSMOVERSION}
     helm repo update
-    kubectl create namespace strimzi-system
-    helm install -n strimzi-system strimzi-kafka-operator \
-        osc-smo-powder-${OSCSMOVERSION}/strimzi-kafka-operator --version 0.28.0 \
-        --set watchAnyNamespace=true --wait --timeout 300s
     kubectl create namespace onap
     helm -n onap deploy --debug onap osc-smo-powder-${OSCSMOVERSION}/onap \
         -f $OURDIR/oran-smo/dep/smo-install/helm-override/powder/onap-override.yaml
