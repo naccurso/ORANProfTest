@@ -102,6 +102,9 @@ cat <<EOF >powder/powder-onap-override.yaml
 global:
   persistence:
     mountPath: /storage/nfs/deployment-1
+strimzi:
+  enabled: true
+  storageClassName: ""
 EOF
 yq --inplace ea '. as $item ireduce ({}; . * $item )' \
     powder/onap-override.yaml \
