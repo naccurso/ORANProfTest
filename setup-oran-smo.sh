@@ -26,13 +26,17 @@ EOF
 #
 # Install helm push plugin.
 #
-TAR_FILE=helm-push_0.9.0_linux_amd64.tar.gz
 HELM_PLUGINS=`helm env HELM_PLUGINS`
 mkdir -p $HELM_PLUGINS/helm-push
 cd $HELM_PLUGINS/helm-push
 wget https://github.com/chartmuseum/helm-push/releases/download/v0.9.0/helm-push_0.9.0_linux_amd64.tar.gz
 tar -xzvf helm-push_0.9.0_linux_amd64.tar.gz
 rm -f helm-push_0.9.0_linux_amd64.tar.gz
+mkdir -p $HELM_PLUGINS/helm-cm-push
+cd $HELM_PLUGINS/helm-cm-push
+wget https://github.com/chartmuseum/helm-push/releases/download/v0.10.4/helm-push_0.10.4_linux_amd64.tar.gz
+tar -xzvf helm-push_0.10.4_linux_amd64.tar.gz
+rm -f helm-push_0.10.4_linux_amd64.tar.gz
 cd $OURDIR/oran-smo
 
 #
@@ -174,6 +178,10 @@ else
     helm repo add local http://$myip:8878/charts
 
     cd $OURDIR/oran-smo/dep/smo-install
+    for f in `grep -rnl ' push -f ' | xargs` ; do
+	echo "Converting $f to cm-push..."
+	sed -i '' -e 's/ push -f / cm-push -f /g' $f
+    done
     scripts/layer-1/1-build-all-charts.sh
     scripts/layer-2/2-install-oran.sh powder
     if [ -n "$INSTALLORANSCSMOSIM" -a $INSTALLORANSCSMOSIM -eq 1 ]; then
