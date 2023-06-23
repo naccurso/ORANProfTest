@@ -658,7 +658,13 @@ this page, and data will begin to populate the graphs.
         /local/setup/oran/dms_cli uninstall \\
             scp-kpimon --version=1.0.1 --namespace=ricxapp
 
-9.  To remove the xApp descriptors (e.g. to re-upload with new images or configuration):
+9.  To explicitly remove the xApp descriptors (e.g. to re-upload with new images or configuration), you can remove them from the Chartmuseum instance that `dms_cli` uses, since it doesn't provide a subcommand to do so.  Note that `dms_cli` should default to overwriting existing charts, so simply re-`onboard`ing the modified descriptor should work as well.)
+
+        export CHART_REPO_URL=http://10.10.1.1:8878/charts
+        curl -X DELETE http://10.10.1.1:8878/charts/api/charts/nexran/0.1.0
+        curl -X DELETE http://10.10.1.1:8878/charts/api/charts/scp-kpimon/1.0.1
+
+        (or, for pre-`e-release` deployments)
 
         . /local/repository/demo/get-env.sh
         curl -L -X DELETE "http://${ONBOARDER_HTTP}:8080/api/charts/nexran/0.1.0"
