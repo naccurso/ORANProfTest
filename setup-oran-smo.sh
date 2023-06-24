@@ -91,6 +91,10 @@ global:
   persistence:
     mountPath: /storage/nfs/deployment-1
 
+nonrtric:
+  persistence:
+    mountPath: /storage/nfs/deployment-1
+
 a1policymanagement:
   enabled: false
   rics: []
@@ -105,6 +109,14 @@ global:
 strimzi:
   enabled: true
   storageClassName: ""
+dmaap:
+  message-router:
+    message-router-zookeeper:
+      persistence:
+        mountPath: "/storage/nfs/deployment-1"
+    message-router-kafka:
+      persistence:
+        mountPath: "/storage/nfs/deployment-1"
 EOF
 yq --inplace ea '. as $item ireduce ({}; . * $item )' \
     powder/onap-override.yaml \
@@ -171,6 +183,9 @@ helm install strimzi-kafka-operator strimzi/strimzi-kafka-operator \
     --set resources.limits.memory=1Gi --set resources.requests.memory=1Gi \
     --set watchAnyNamespace=true --create-namespace \
     --wait --timeout 300s
+if [ ! -e /dockerdata-nfs ]; then
+    $SUDO ln -s /storage/nfs /dockerdata-nfs
+fi
 if [ $USECACHEDCHARTS -eq 1 ]; then
     helm repo add osc-smo-powder-${OSCSMOVERSION} \
         https://gitlab.flux.utah.edu/api/v4/projects/1869/packages/helm/powder-osc-smo-${OSCSMOVERSION}
