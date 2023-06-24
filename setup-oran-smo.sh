@@ -220,7 +220,7 @@ else
     fi
 fi
 
-kubectl -n onap wait deployments --for condition=Available
+kubectl -n onap wait deployments --all --for condition=Available --timeout=60m
 # Kp8bJ4SXszM0WXlhak3eHlcse2gAw84vaoGGmJvUy2U
 kubectl -n onap expose service sdnc-web-service \
     --port=8443 --target-port=8443 --name sdnc-web-service-ext \
