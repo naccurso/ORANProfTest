@@ -23,6 +23,8 @@ fs.inotify.max_user_instances=1024
 fs.inotify.max_user_watches=1000448
 EOF
 
+KAPIMINOR=`kubectl version -o yaml | yq '.serverVersion.minor'`
+
 #
 # Install helm push plugin.
 #
@@ -65,6 +67,12 @@ cd dep
 git checkout $DEPBRANCH
 git submodule update --init --recursive --remote
 git submodule update
+
+if [ -n "$KAPIMINOR" -a $KAPIMINOR -ge 25 ]; then
+    perl -0777 -i.original -pe \
+        's/apiVersion: policy\/v1beta1\nkind: PodDisruptionBudget/apiVersion: policy\/v1\nkind: PodDisruptionBudget/igs' \
+	smo-install/onap_oom/kubernetes/common/mariadb-galera/templates/pdb.yaml
+fi
 
 #
 # Performance hack: pre-pull image content if we might have a mirror.
@@ -171,7 +179,6 @@ fi
 # And that strimzi has trouble with computing its max mem due to lack
 # of cgroups v2 support, so bump its limit.
 #
-KAPIMINOR=`kubectl version -o yaml | yq '.serverVersion.minor'`
 if [ -n "$KAPIMINOR" -a $KAPIMINOR -ge 22 ]; then
     STRIMZIVERSION=0.29.0
 else
