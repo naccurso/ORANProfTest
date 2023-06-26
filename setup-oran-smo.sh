@@ -108,6 +108,17 @@ a1policymanagement:
   enabled: false
   rics: []
 EOF
+if [ "$OSCSMOVERSION" = "g-release" ]; then
+    cat <<EOF >powder/powder-oran-override.yaml
+odu-app:
+  image:
+    repository: nexus3.o-ran-sc.org:10002/o-ran-sc/nonrtric-rapp-ransliceassurance
+odu-app-ics-version:
+  image:
+    repository: nexus3.o-ran-sc.org:10002/o-ran-sc/nonrtric-rapp-ransliceassurance-icsversion
+
+EOF
+fi
 yq --inplace ea '. as $item ireduce ({}; . * $item )' \
     powder/oran-override.yaml \
     powder/powder-oran-override.yaml
