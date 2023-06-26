@@ -72,6 +72,7 @@ if [ -n "$KAPIMINOR" -a $KAPIMINOR -ge 25 ]; then
     perl -0777 -i.original -pe \
         's/apiVersion: policy\/v1beta1\nkind: PodDisruptionBudget/apiVersion: policy\/v1\nkind: PodDisruptionBudget/igs' \
 	smo-install/onap_oom/kubernetes/common/mariadb-galera/templates/pdb.yaml
+    rm -fv smo-install/onap_oom/kubernetes/common/mariadb-galera/templates/pdb.yaml
 fi
 
 #
