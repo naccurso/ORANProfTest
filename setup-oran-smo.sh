@@ -16,13 +16,6 @@ cd $OURDIR/oran-smo
 
 myip=`getnodeip $HEAD $MGMTLAN`
 
-$SUDO sysctl fs.inotify.max_user_instances=1024
-$SUDO sysctl fs.inotify.max_user_watches=1000448
-cat <<EOF | $SUDO tee -a /etc/sysctl.d/99-kube.conf
-fs.inotify.max_user_instances=1024
-fs.inotify.max_user_watches=1000448
-EOF
-
 KAPIMINOR=`kubectl version -o yaml | yq '.serverVersion.minor'`
 
 #
