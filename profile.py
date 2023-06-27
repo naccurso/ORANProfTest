@@ -701,7 +701,7 @@ Browse to https://{host-node-0}:8443 and enter username `admin` and password `Kp
 (if you selected the `Use Cached OSC SMO Charts`:)
 
     helm install -n network --create-namespace --debug oran-simulator \\
-        osc-smo-powder-f-release/ru-du-simulators \\
+        osc-smo-powder-g-release/ru-du-simulators \\
         -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/network-simulators-override.yaml \\
         -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/network-simulators-topology-override.yaml
 
