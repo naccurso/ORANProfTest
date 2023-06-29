@@ -13,7 +13,7 @@ import hashlib
 import os.path
 import sys
 
-TBCMD = "sudo mkdir -p /local/setup && sudo chown `geni-get user_urn | cut -f4 -d+` /local/setup && sudo -u `geni-get user_urn | cut -f4 -d+` -Hi /bin/sh -c '/local/repository/setup-driver.sh >/local/logs/setup.log 2>&1'"
+TBCMD = "sudo mkdir -p /local/setup && sudo chown `geni-get user_urn | cut -f4 -d+` /local/setup && sudo -u `geni-get user_urn | cut -f4 -d+` -Hi /bin/bash -c '/local/repository/setup-driver.sh >/local/logs/setup.log 2>&1'"
 
 #
 # For now, disable the testbed's root ssh key service until we can remove ours.
@@ -50,8 +50,8 @@ pc.defineParameter(
     longDescription="A specific link speed to use for each link/LAN.  All experiment network interfaces will request this speed.")
 pc.defineParameter(
     "ricRelease","O-RAN SC RIC Release",
-    portal.ParameterType.STRING,"g-release",
-    [("g-release","g-release (e2ap v2)"),("f-release","f-release (e2ap v2)"),
+    portal.ParameterType.STRING,"h-release",
+    [("h-release","h-release (e2ap v2)"),("g-release","g-release (e2ap v2)"),("f-release","f-release (e2ap v2)"),
      ("e-release","e-release (e2ap v1)"),("dawn","dawn (e2ap v1)")],
     longDescription="O-RAN SC RIC component version.  Even when you select a version, some components may be built from our own bugfix branches, and not specifically on the exact release branch.  This parameter specifies the default branch for components that we can use unmodified.")
 pc.defineParameter(
@@ -75,7 +75,7 @@ pc.defineParameter(
     advanced=True)
 pc.defineParameter(
     "oscSmoVersion","OSC non-RT SMO Version",
-    portal.ParameterType.STRING,"f-release",
+    portal.ParameterType.STRING,"g-release",
     [("g-release","g-release"),("f-release","f-release")],
     longDescription="OSC non-RT RIC version.",
     advanced=True)
@@ -116,8 +116,8 @@ pc.defineParameter(
     advanced=True)
 pc.defineParameter(
     "diskImage","Disk Image",
-    portal.ParameterType.IMAGE,
-    "urn:publicid:IDN+emulab.net+image+emulab-ops//UBUNTU18-64-STD",
+    portal.ParameterType.STRING,
+    "urn:publicid:IDN+emulab.net+image+emulab-ops//UBUNTU22-64-STD",
     advanced=True,
     longDescription="An image URN or URL that every node will run.")
 pc.defineParameter(
@@ -133,8 +133,8 @@ pc.defineParameter(
     advanced=True)
 pc.defineParameter(
     "kubesprayVersion","Kubespray Version",
-    portal.ParameterType.STRING,"release-2.16",
-    longDescription="A tag or commit-ish value; we will run `git checkout <value>`.  The default value is the most recent stable value we have tested.  You should only change this if you need a new feature only available on `master`, or an old feature from a prior release.  We support versions back to release-2.13 only.",
+    portal.ParameterType.STRING,"release-2.21",
+    longDescription="A tag or commit-ish value; we will run `git checkout <value>`.  The default value is the most recent stable value we have tested.  You should only change this if you need a new feature only available on `master`, or an old feature from a prior release.  We support versions back to release-2.13 only.  Ubuntu 22 supports only release-2.20 and greater.  You will need to use Ubuntu 20 for anything prior to that.",
     advanced=True)
 pc.defineParameter(
     "kubesprayUseVirtualenv","Kubespray VirtualEnv",
@@ -152,9 +152,15 @@ pc.defineParameter(
     longDescription="A specific release of Helm to install (e.g. v2.12.3); if left empty, Kubespray will choose its current stable version and install that.  Note that the version you pick must exist as a tag in this Docker image repository: https://hub.docker.com/r/lachlanevenson/k8s-helm/tags .",
     advanced=True)
 pc.defineParameter(
+    "containerManager","Container Manager",
+    portal.ParameterType.STRING,"docker",
+    [("docker","docker"),("containerd","containerd")],
+    longDescription="The container manager to use; either docker or containerd.",
+    advanced=True)
+pc.defineParameter(
     "dockerVersion","Docker Version",
     portal.ParameterType.STRING,"",
-    longDescription="A specific Docker version to install; if left empty, Kubespray will choose its current stable version and install that.  As explained in the Kubespray documentation (https://github.com/kubernetes-sigs/kubespray/blob/master/docs/vars.md), this value must be one of those listed at, e.g. https://github.com/kubernetes-sigs/kubespray/blob/release-2.13/roles/container-engine/docker/vars/ubuntu-amd64.yml .",
+    longDescription="A specific Docker version to install; if left empty, Kubespray will choose its current stable version and install that.  As explained in the Kubespray documentation (https://github.com/kubernetes-sigs/kubespray/blob/master/docs/vars.md), this value must be one of those listed at, e.g. https://github.com/kubernetes-sigs/kubespray/blob/release-2.20/roles/container-engine/docker/vars/ubuntu.yml .",
     advanced=True)
 pc.defineParameter(
     "dockerOptions","Dockerd Options",
@@ -206,8 +212,8 @@ pc.defineParameter(
     advanced=True)
 pc.defineParameter(
     "kubeFeatureGates","Kubernetes Feature Gate List",
-    portal.ParameterType.STRING,"[SCTPSupport=true,EphemeralContainers=true]",
-    longDescription="A []-enclosed, comma-separated list of features.  For instance, `[SCTPSupport=true]`.",
+    portal.ParameterType.STRING,"[EphemeralContainers=true]",
+    longDescription="A []-enclosed, comma-separated list of features.  For instance, `[SCTPSupport=true]`. NB: ensure your feature gates have not been removed (https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates-removed/).  For instance, SCTPSupport was removed in Kubernetes 1.22, and began defaulting to true in 1.19.  EphemeralContainers was removed in Kubernetes 1.26, and began defaulting to true in 1.23.",
     advanced=True)
 pc.defineParameter(
     "kubeletCustomFlags","Kubelet Custom Flags List",
@@ -652,7 +658,13 @@ this page, and data will begin to populate the graphs.
         /local/setup/oran/dms_cli uninstall \\
             scp-kpimon --version=1.0.1 --namespace=ricxapp
 
-9.  To remove the xApp descriptors (e.g. to re-upload with new images or configuration):
+9.  To explicitly remove the xApp descriptors (e.g. to re-upload with new images or configuration), you can remove them from the Chartmuseum instance that `dms_cli` uses, since it doesn't provide a subcommand to do so.  Note that `dms_cli` should default to overwriting existing charts, so simply re-`onboard`ing the modified descriptor should work as well.)
+
+        export CHART_REPO_URL=http://10.10.1.1:8878/charts
+        curl -X DELETE http://10.10.1.1:8878/charts/api/charts/nexran/0.1.0
+        curl -X DELETE http://10.10.1.1:8878/charts/api/charts/scp-kpimon/1.0.1
+
+        (or, for pre-`e-release` deployments)
 
         . /local/repository/demo/get-env.sh
         curl -L -X DELETE "http://${ONBOARDER_HTTP}:8080/api/charts/nexran/0.1.0"
@@ -689,7 +701,7 @@ Browse to https://{host-node-0}:8443 and enter username `admin` and password `Kp
 (if you selected the `Use Cached OSC SMO Charts`:)
 
     helm install -n network --create-namespace --debug oran-simulator \\
-        osc-smo-powder-f-release/ru-du-simulators \\
+        osc-smo-powder-g-release/ru-du-simulators \\
         -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/network-simulators-override.yaml \\
         -f /local/setup/oran-smo/dep/smo-install/helm-override/powder/network-simulators-topology-override.yaml
 

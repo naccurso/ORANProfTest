@@ -72,6 +72,9 @@ RICDEPBRANCH=$RICRELEASE
 if [ $RICVERSION -eq $RICDAWN ]; then
     RICDEPREPO=https://gitlab.flux.utah.edu/powderrenewpublic/ric-dep
     RICDEPBRANCH=dawn-powder
+elif [ $RICVERSION -eq $RICHRELEASE ]; then
+    RICDEPREPO=https://gitlab.flux.utah.edu/powderrenewpublic/ric-dep
+    RICDEPBRANCH=h-release-powder
 fi
 git clone $RICDEPREPO -b $RICDEPBRANCH
 cd ric-dep
@@ -86,7 +89,8 @@ if [ -e RECIPE_EXAMPLE/example_recipe_oran_${RICSHORTRELEASE}_release.yaml ]; th
 else
     cp RECIPE_EXAMPLE/PLATFORM/example_recipe.yaml $OURDIR/oran
 fi
-cat <<EOF >$OURDIR/oran/example_recipe.yaml-override
+if [ $RICRELEASE -lt $RICHRELEASE ]; then
+    cat <<EOF >$OURDIR/oran/example_recipe.yaml-override
 e2term:
   alpha:
     image:
@@ -94,6 +98,9 @@ e2term:
       name: "${E2TERM_NAME}"
       tag: "${E2TERM_TAG}"
 EOF
+else
+    touch $OURDIR/oran/example_recipe.yaml-override
+fi
 if [ $RICVERSION -eq $RICDAWN ]; then
     # appmgr > 0.4.3 isn't really released yet.
     cat <<EOF >>$OURDIR/oran/example_recipe.yaml-override
@@ -106,7 +113,8 @@ appmgr:
 EOF
 fi
 
-yq m --inplace --overwrite $OURDIR/oran/example_recipe.yaml \
+yq --inplace ea '. as $item ireduce ({}; . * $item )' \
+    $OURDIR/oran/example_recipe.yaml \
     $OURDIR/oran/example_recipe.yaml-override
 
 # Unfortunately, the helm setup is completely intermingled
@@ -221,6 +229,23 @@ if [ ! -e $OURDIR/venv/dms/bin/activate ]; then
 	&& cd $OURDIR/oran/appmgr/xapp_orchestrater/dev/xapp_onboarder \
 	&& pip3 install . \
 	&& deactivate
+    #
+    # xapp_onboarder relies on ancient flask_restful which is no
+    # longer maintained (replaced by flask_restx).  So, if we are on
+    # python 3.10 or above, where MutableMapping seems to no longer
+    # be available in collections (now collections.abc), play a dirty,
+    # dirty trick.  :)
+    #
+    PYMAJOR=`echo 'import sys; print(sys.version_info.major);' | python`
+    PYMINOR=`echo 'import sys; print(sys.version_info.minor);' | python`
+    if [ -n "$PYMAJOR" -a -n "$PYMINOR" -a "$PYMAJOR" = "3" -a $PYMINOR -gt 9 ]; then
+	. $OURDIR/venv/dms/bin/activate \
+	    && pip3 uninstall flask_restplus -y \
+	    && pip3 install flask_restx -y \
+	    && cd /local/setup/venv/dms/lib/python3*/site-packages/ \
+	    && ln -s flask_restx flask_restplus \
+	    && deactivate
+    fi
     if [ ! -e $OURDIR/oran/dms_cli ]; then
 	cat <<EOF >$OURDIR/oran/dms_cli
 #!/bin/sh

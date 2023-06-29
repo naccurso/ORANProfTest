@@ -13,6 +13,8 @@ fi
 
 logtstart "asn1c"
 
+maybe_install_packages autoconf make libtool-bin
+
 cd $OURDIR
 rm -rf $OURDIR/asn1c
 # GIT_SSL_NO_VERIFY=true
