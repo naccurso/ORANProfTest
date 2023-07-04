@@ -241,7 +241,7 @@ if [ ! -e $OURDIR/venv/dms/bin/activate ]; then
     if [ -n "$PYMAJOR" -a -n "$PYMINOR" -a "$PYMAJOR" = "3" -a $PYMINOR -gt 9 ]; then
 	. $OURDIR/venv/dms/bin/activate \
 	    && pip3 uninstall flask_restplus -y \
-	    && pip3 install flask_restx -y \
+	    && pip3 install flask_restx \
 	    && cd /local/setup/venv/dms/lib/python3*/site-packages/ \
 	    && ln -s flask_restx flask_restplus \
 	    && deactivate
