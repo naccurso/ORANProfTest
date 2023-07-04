@@ -89,7 +89,7 @@ if [ -e RECIPE_EXAMPLE/example_recipe_oran_${RICSHORTRELEASE}_release.yaml ]; th
 else
     cp RECIPE_EXAMPLE/PLATFORM/example_recipe.yaml $OURDIR/oran
 fi
-if [ $RICRELEASE -lt $RICHRELEASE ]; then
+if [ $RICVERSION -lt $RICHRELEASE ]; then
     cat <<EOF >$OURDIR/oran/example_recipe.yaml-override
 e2term:
   alpha:
