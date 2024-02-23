@@ -206,12 +206,12 @@ $SUDO pkill chartmuseum
 myip=`getnodeip $HEAD $MGMTLAN`
 docker inspect chartmuseum-oran
 if [ ! $? -eq 0 ]; then
-    $SUDO docker pull bitnami/chartmuseum
+    $SUDO docker pull bitnami/chartmuseum-archived
     $SUDO docker run -d \
         --name chartmuseum-oran \
 	-p 127.0.0.1:8878:8080 -p $myip:8878:8080 \
 	-e CONTEXT_PATH=charts \
-	bitnami/chartmuseum
+	bitnami/chartmuseum-archived
 fi
 
 #
