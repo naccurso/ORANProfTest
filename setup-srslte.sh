@@ -29,7 +29,7 @@ maybe_install_packages \
     libconfig++-dev libsctp-dev libzmq3-dev iperf3
 
 if [ ! -e srslte-ric ]; then
-    git clone https://gitlab.flux.utah.edu/powderrenewpublic/srslte-ric
+    git clone https://github.com/naccurso/POWDERSRS.git
 fi
 cd srslte-ric
 E2APVERSION="v02.03"
